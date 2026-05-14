@@ -127,14 +127,46 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+/**
+ * Provenance columns appended to every augmented CSV. They live alongside
+ * the iCite-rename map so collision-safe naming works the same way.
+ */
+export type Provenance = {
+  appVersion: string; // e.g. "0.1.0+a659029"
+  dateRun: string; // ISO timestamp
+};
+
+const PROVENANCE_COLUMNS = ["app_version", "date_run"] as const;
+
 export function writeAugmentedCSV(
   parsed: ParsedCSV,
   records: Map<string, ICiteRecord>,
   icite: readonly (keyof ICiteRecord)[],
+  provenance?: Provenance,
 ): string {
   const rename = resolveOutputColumns(parsed.fieldnames, icite);
   const outputCols: string[] = [...parsed.fieldnames];
   for (const src of icite) outputCols.push(rename.get(src)!);
+
+  // Resolve provenance column names against the same collision rules so a
+  // user CSV that already has an `app_version` column isn't overwritten.
+  const provenanceRename = new Map<string, string>();
+  if (provenance) {
+    const used = new Set(outputCols.map((n) => n.trim().toLowerCase()));
+    for (const src of PROVENANCE_COLUMNS) {
+      let candidate = src as string;
+      if (used.has(candidate.toLowerCase())) candidate = `icite_${candidate}`;
+      let n = 2;
+      const base = candidate;
+      while (used.has(candidate.toLowerCase())) {
+        candidate = `${base}_${n}`;
+        n += 1;
+      }
+      provenanceRename.set(src, candidate);
+      used.add(candidate.toLowerCase());
+      outputCols.push(candidate);
+    }
+  }
 
   const rows = parsed.rows.map((row) => {
     const pmid = (row[parsed.pmidColumn] ?? "").trim();
@@ -143,6 +175,10 @@ export function writeAugmentedCSV(
     for (const src of icite) {
       const value = record ? (record as Record<string, unknown>)[src as string] : undefined;
       augmented[rename.get(src)!] = formatValue(value);
+    }
+    if (provenance) {
+      augmented[provenanceRename.get("app_version")!] = provenance.appVersion;
+      augmented[provenanceRename.get("date_run")!] = provenance.dateRun;
     }
     return outputCols.map((col) => augmented[col] ?? "");
   });

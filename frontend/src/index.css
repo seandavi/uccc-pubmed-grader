@@ -70,4 +70,82 @@
       );
     background-size: 3px 3px;
   }
+
+  /* Custom range thumbs for the year slider — circular, ink-black,
+     pointer-events-auto so the parent input can stay pointer-events-none
+     (which lets two stacked inputs share a track without one eating
+     clicks meant for the other). */
+  .range-thumb {
+    pointer-events: none;
+  }
+  .range-thumb::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    height: 18px;
+    width: 18px;
+    border-radius: 9999px;
+    background: #0a0a09;
+    border: 2px solid #faf7f2;
+    box-shadow: 0 0 0 1px #0a0a09;
+    cursor: grab;
+    margin-top: -4px;
+  }
+  .range-thumb::-moz-range-thumb {
+    pointer-events: auto;
+    height: 18px;
+    width: 18px;
+    border-radius: 9999px;
+    background: #0a0a09;
+    border: 2px solid #faf7f2;
+    box-shadow: 0 0 0 1px #0a0a09;
+    cursor: grab;
+  }
+  .range-thumb::-webkit-slider-runnable-track {
+    height: 0;
+    background: transparent;
+  }
+  .range-thumb::-moz-range-track {
+    height: 0;
+    background: transparent;
+  }
+}
+
+/* --- Print stylesheet -----------------------------------------------
+ * Turning the editorial dashboard into something that prints to letter/A4.
+ * Hides nav, upload area, footer chrome; flattens colors; adds page breaks.
+ */
+@media print {
+  @page {
+    margin: 0.6in;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  /* Hide ephemeral chrome */
+  nav,
+  .print-hide,
+  .paper-grain::before {
+    display: none !important;
+  }
+
+  /* Don't break inside a card or chart */
+  section,
+  article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Force black ink for printable contrast */
+  body,
+  body * {
+    color: #000 !important;
+  }
+
+  /* Recharts SVGs print fine, but suppress hover/tooltips */
+  .recharts-tooltip-wrapper {
+    display: none !important;
+  }
 }

@@ -128,4 +128,26 @@ describe("writeAugmentedCSV", () => {
     expect(lines[1].startsWith("Alpha,222")).toBe(true);
     expect(lines[2].startsWith("Beta,111")).toBe(true);
   });
+
+  it("appends provenance columns when provided", () => {
+    const parsed = parseCSV("pmid\n111\n");
+    const out = writeAugmentedCSV(parsed, new Map(), ["year"], {
+      appVersion: "0.1.0+abc1234",
+      dateRun: "2026-05-14T08:00:00.000Z",
+    });
+    const lines = out.trim().split("\n");
+    expect(lines[0]).toBe("pmid,year,app_version,date_run");
+    expect(lines[1]).toBe("111,,0.1.0+abc1234,2026-05-14T08:00:00.000Z");
+  });
+
+  it("renames provenance columns on collision with user columns", () => {
+    const parsed = parseCSV("pmid,app_version\n111,user_value\n");
+    const out = writeAugmentedCSV(parsed, new Map(), [], {
+      appVersion: "0.1.0+abc1234",
+      dateRun: "2026-05-14T08:00:00.000Z",
+    });
+    const lines = out.trim().split("\n");
+    expect(lines[0]).toBe("pmid,app_version,icite_app_version,date_run");
+    expect(lines[1]).toBe("111,user_value,0.1.0+abc1234,2026-05-14T08:00:00.000Z");
+  });
 });
