@@ -140,6 +140,19 @@ describe("writeAugmentedCSV", () => {
     expect(lines[1]).toBe("111,,0.1.0+abc1234,2026-05-14T08:00:00.000Z");
   });
 
+  it("emits OA columns whenever an unpaywall map is supplied, even if empty", () => {
+    const parsed = parseCSV("pmid\n111\n");
+    const out = writeAugmentedCSV(parsed, new Map(), ["year"], {
+      appVersion: "0.1.0+abc1234",
+      dateRun: "2026-05-14T08:00:00.000Z",
+      unpaywallByDoi: new Map(),
+    });
+    const header = out.split("\n")[0];
+    expect(header).toContain("is_oa");
+    expect(header).toContain("oa_status");
+    expect(header).toContain("oa_url");
+  });
+
   it("renames provenance columns on collision with user columns", () => {
     const parsed = parseCSV("pmid,app_version\n111,user_value\n");
     const out = writeAugmentedCSV(parsed, new Map(), [], {

@@ -173,8 +173,10 @@ export function writeAugmentedCSV(
   const used = new Set(outputCols.map((n) => n.trim().toLowerCase()));
   const enrichmentRename = new Map<string, string>();
   const provenanceRename = new Map<string, string>();
-  const wantsEnrichment =
-    provenance && provenance.unpaywallByDoi && provenance.unpaywallByDoi.size > 0;
+  // Presence of an `unpaywallByDoi` map (even when empty) signals that the
+  // caller attempted Unpaywall lookup; emit the OA columns so the downloaded
+  // CSV's shape is stable across runs regardless of how many DOIs resolved.
+  const wantsEnrichment = !!provenance?.unpaywallByDoi;
 
   if (wantsEnrichment) {
     for (const src of ENRICHMENT_COLUMNS) {
