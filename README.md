@@ -1,11 +1,63 @@
-# University of Colorado Cancer Center PubMed Grader
+# UCCC Publication Impact Grader
 
-This repository contains code for a web application that accepts a csv file with one column of pubmed ids and any number of additional columns.
-The default name is pmid (case insensitive) with an optional user-specified column name for the pubmed column. 
-The application will then query the iCite API to retrieve all iCite columns and append those columns to the original file rows.
-The application will then return the file with the new columns added. 
+A static web app for the University of Colorado Cancer Center. Drop a CSV of PubMed IDs; the browser calls NIH's [iCite API](https://icite.od.nih.gov/api) for each paper, then renders a one-page editorial-styled dashboard (RCR distribution, year histogram, top journals, top-cited papers) and lets you download the augmented CSV.
 
-The application is built using a fastapi backend and a react frontend. 
-The number of items could be large, so the application is designed to run asynchronously and return a link that the user can check for status and download when ready. 
+The entire app runs in the browser — there is no backend. iCite enables CORS for cross-origin browser requests.
 
+## Quickstart
 
+```bash
+just install   # bun install in ./frontend
+just dev       # Vite dev server on http://localhost:5173
+just test      # vitest
+just build     # static SPA in frontend/dist
+```
+
+`just --list` enumerates the rest.
+
+## Configuration
+
+`.env` (gitignored) sets a single env var consumed at build time:
+
+```
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX   # leave empty to disable analytics
+```
+
+In production, this is supplied via Docker build arg / GCP Secret Manager.
+
+## CSV format
+
+Any CSV with a column of PubMed IDs. The PMID column name is auto-detected case-insensitively (default `pmid`); override it from the upload page if your column is called something else (e.g. `pubmed_id`). Original columns and row order are preserved; iCite columns are appended. If an iCite field name collides with one of your column names (e.g. you already have a `year`), the iCite version is renamed with an `icite_` prefix so your data is untouched.
+
+## Deployment
+
+Multi-stage Docker: bun builds the SPA, nginx serves the static output. Traefik in front handles TLS and routing — Traefik labels are wired up in `docker-compose.yml`; the shared Traefik config lives outside this repo at `monode/infrastructure/compose/traefik`.
+
+```bash
+just up    # docker compose up --build
+```
+
+For static-host deploys (Cloudflare Pages, Vercel, Netlify, GCS+CDN, GitHub Pages), point the host at `frontend/dist` after `just build`.
+
+## Architecture
+
+```
+upload → parseCSV (papaparse) → validPmids
+       → fetchMany (iCite, batched, with retry)
+       → computeSummary (RCR, year, journals, top cited)
+       → writeAugmentedCSV → Blob URL → download
+```
+
+- `frontend/src/lib/icite.ts` — async generator batching PMIDs (default 200/call), retries 429/5xx with exponential backoff.
+- `frontend/src/lib/csv.ts` — parse + augment, collision-safe iCite column rename.
+- `frontend/src/lib/stats.ts` — pure dashboard-summary computation.
+- `frontend/src/hooks/useGrading.ts` — orchestrates the flow + drives progress state for the UI.
+- `frontend/src/components/` — editorial UI (Fraunces / DM Sans / JetBrains Mono, cream paper + ink + CU gold).
+
+## Why client-only?
+
+For "read a CSV, call a public API for each row, render stats, give the file back," a backend buys you very little and costs you operational complexity. We're trading that complexity for: no infra to run, no auth, no rate-limit proxy, no file storage, no shareable job URLs. If any of those needs surface later, a backend can be added back — but starting here keeps the surface small.
+
+## License
+
+MIT.
