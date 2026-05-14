@@ -8,14 +8,17 @@ import { Link } from "react-router-dom";
 import { COLUMN_DICTIONARY } from "../lib/columnDictionary";
 import type { ColumnDoc } from "../lib/columnDictionary";
 
+const PILL_STYLES: Record<ColumnDoc["source"], string> = {
+  iCite: "bg-ink text-paper",
+  Unpaywall: "bg-gold text-ink",
+  Altmetric: "bg-oxblood text-paper",
+  App: "bg-gold/20 text-ink border border-gold",
+};
+
 function SourcePill({ source }: { source: ColumnDoc["source"] }) {
-  const styles =
-    source === "iCite"
-      ? "bg-ink text-paper"
-      : "bg-gold/20 text-ink border border-gold";
   return (
     <span
-      className={`inline-block px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-eyebrow ${styles}`}
+      className={`inline-block px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-eyebrow ${PILL_STYLES[source]}`}
     >
       {source}
     </span>
@@ -25,6 +28,8 @@ function SourcePill({ source }: { source: ColumnDoc["source"] }) {
 export function DataDictionary() {
   const grouped = {
     iCite: COLUMN_DICTIONARY.filter((c) => c.source === "iCite"),
+    Unpaywall: COLUMN_DICTIONARY.filter((c) => c.source === "Unpaywall"),
+    Altmetric: COLUMN_DICTIONARY.filter((c) => c.source === "Altmetric"),
     App: COLUMN_DICTIONARY.filter((c) => c.source === "App"),
   };
 
@@ -45,6 +50,8 @@ export function DataDictionary() {
       </header>
 
       <Section title="From NIH iCite" docs={grouped.iCite} />
+      <Section title="From Unpaywall (Open Access)" docs={grouped.Unpaywall} />
+      <Section title="From Altmetric (attention)" docs={grouped.Altmetric} />
       <Section title="Added by this app" docs={grouped.App} />
 
       <div className="rule-top pt-6">

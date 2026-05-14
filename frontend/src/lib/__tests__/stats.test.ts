@@ -159,5 +159,67 @@ describe("computeSummary", () => {
     expect(s.rcr.above1Pct).toBeNull();
     expect(s.topJournals).toEqual([]);
     expect(s.topCitedPapers).toEqual([]);
+    expect(s.pctOpenAccess).toBeNull();
+    expect(s.altmetricMedian).toBeNull();
+    expect(s.topByAttention).toEqual([]);
+  });
+
+  it("computes pctOpenAccess and OA breakdown from Unpaywall results", () => {
+    const records = new Map([
+      ["1", rec(1, { doi: "10.1/a" })],
+      ["2", rec(2, { doi: "10.1/b" })],
+      ["3", rec(3, { doi: "10.1/c" })],
+      ["4", rec(4)], // no DOI
+    ]);
+    const doiByPmid = new Map([
+      ["1", "10.1/a"],
+      ["2", "10.1/b"],
+      ["3", "10.1/c"],
+    ]);
+    const unpaywall = new Map([
+      ["10.1/a", { doi: "10.1/a", isOA: true, oaStatus: "gold" as const, bestOAUrl: null }],
+      ["10.1/b", { doi: "10.1/b", isOA: true, oaStatus: "green" as const, bestOAUrl: null }],
+      ["10.1/c", { doi: "10.1/c", isOA: false, oaStatus: "closed" as const, bestOAUrl: null }],
+    ]);
+    const s = computeSummary({
+      totalRows: 4,
+      invalid: 0,
+      requestedPmids: [...records.keys()],
+      records,
+      doiByPmid,
+      unpaywallByDoi: unpaywall,
+    });
+    expect(s.oaResolved).toBe(3);
+    expect(s.pctOpenAccess).toBeCloseTo(66.67, 2);
+    expect(s.oaBreakdown.find((b) => b.status === "gold")?.count).toBe(1);
+    expect(s.oaBreakdown.find((b) => b.status === "green")?.count).toBe(1);
+    expect(s.oaBreakdown.find((b) => b.status === "closed")?.count).toBe(1);
+  });
+
+  it("computes Altmetric aggregations and topByAttention", () => {
+    const records = new Map([
+      ["1", rec(1, { title: "Paper 1" })],
+      ["2", rec(2, { title: "Paper 2" })],
+      ["3", rec(3, { title: "Paper 3" })],
+    ]);
+    const altmetric = new Map([
+      ["1", { pmid: "1", score: 100, detailsUrl: "https://am/1" }],
+      ["2", { pmid: "2", score: 5, detailsUrl: null }],
+      // PMID 3 has no Altmetric data
+    ]);
+    const s = computeSummary({
+      totalRows: 3,
+      invalid: 0,
+      requestedPmids: [...records.keys()],
+      records,
+      altmetricByPmid: altmetric,
+    });
+    expect(s.altmetricCovered).toBe(2);
+    expect(s.altmetricMean).toBe(52.5);
+    expect(s.altmetricMedian).toBe(52.5);
+    expect(s.topByAttention[0].pmid).toBe("1");
+    expect(s.topByAttention[0].altmetricScore).toBe(100);
+    expect(s.topByAttention[0].altmetricUrl).toBe("https://am/1");
+    expect(s.topByAttention.length).toBe(2);
   });
 });

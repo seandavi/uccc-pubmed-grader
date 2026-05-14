@@ -12,7 +12,9 @@
 
 import Papa from "papaparse";
 
+import type { AltmetricRecord } from "./altmetric";
 import type { ICiteRecord } from "./icite";
+import type { UnpaywallRecord } from "./unpaywall";
 
 export const PMID_PATTERN = /^\d{1,9}$/;
 export const DEFAULT_PMID_COLUMN = "pmid";
@@ -134,7 +136,20 @@ function formatValue(value: unknown): string {
 export type Provenance = {
   appVersion: string; // e.g. "0.1.0+a659029"
   dateRun: string; // ISO timestamp
+  /** Optional Unpaywall results keyed by DOI. */
+  unpaywallByDoi?: Map<string, UnpaywallRecord>;
+  /** Optional Altmetric results keyed by PMID. */
+  altmetricByPmid?: Map<string, AltmetricRecord>;
 };
+
+// Order matters — this is the column order in the output CSV.
+const ENRICHMENT_COLUMNS = [
+  "is_oa",
+  "oa_status",
+  "oa_url",
+  "altmetric_score",
+  "altmetric_url",
+] as const;
 
 const PROVENANCE_COLUMNS = ["app_version", "date_run"] as const;
 
@@ -148,25 +163,48 @@ export function writeAugmentedCSV(
   const outputCols: string[] = [...parsed.fieldnames];
   for (const src of icite) outputCols.push(rename.get(src)!);
 
-  // Resolve provenance column names against the same collision rules so a
-  // user CSV that already has an `app_version` column isn't overwritten.
+  // Resolve enrichment (OA + Altmetric) and provenance column names against
+  // the same collision rules so a user CSV that already has e.g. an
+  // `is_oa` column isn't overwritten.
+  const reserveName = (used: Set<string>, src: string): string => {
+    let candidate = src;
+    if (used.has(candidate.toLowerCase())) candidate = `icite_${src}`;
+    const base = candidate;
+    let n = 2;
+    while (used.has(candidate.toLowerCase())) {
+      candidate = `${base}_${n}`;
+      n += 1;
+    }
+    used.add(candidate.toLowerCase());
+    return candidate;
+  };
+
+  const used = new Set(outputCols.map((n) => n.trim().toLowerCase()));
+  const enrichmentRename = new Map<string, string>();
   const provenanceRename = new Map<string, string>();
-  if (provenance) {
-    const used = new Set(outputCols.map((n) => n.trim().toLowerCase()));
-    for (const src of PROVENANCE_COLUMNS) {
-      let candidate = src as string;
-      if (used.has(candidate.toLowerCase())) candidate = `icite_${candidate}`;
-      let n = 2;
-      const base = candidate;
-      while (used.has(candidate.toLowerCase())) {
-        candidate = `${base}_${n}`;
-        n += 1;
-      }
-      provenanceRename.set(src, candidate);
-      used.add(candidate.toLowerCase());
-      outputCols.push(candidate);
+  const wantsEnrichment =
+    provenance &&
+    ((provenance.unpaywallByDoi && provenance.unpaywallByDoi.size > 0) ||
+      (provenance.altmetricByPmid && provenance.altmetricByPmid.size > 0));
+
+  if (wantsEnrichment) {
+    for (const src of ENRICHMENT_COLUMNS) {
+      const dest = reserveName(used, src);
+      enrichmentRename.set(src, dest);
+      outputCols.push(dest);
     }
   }
+
+  if (provenance) {
+    for (const src of PROVENANCE_COLUMNS) {
+      const dest = reserveName(used, src);
+      provenanceRename.set(src, dest);
+      outputCols.push(dest);
+    }
+  }
+
+  const unpaywallByDoi = provenance?.unpaywallByDoi;
+  const altmetricByPmid = provenance?.altmetricByPmid;
 
   const rows = parsed.rows.map((row) => {
     const pmid = (row[parsed.pmidColumn] ?? "").trim();
@@ -175,6 +213,16 @@ export function writeAugmentedCSV(
     for (const src of icite) {
       const value = record ? (record as Record<string, unknown>)[src as string] : undefined;
       augmented[rename.get(src)!] = formatValue(value);
+    }
+    if (wantsEnrichment) {
+      const doi = record?.doi?.trim();
+      const u = doi ? unpaywallByDoi?.get(doi) : undefined;
+      const a = altmetricByPmid?.get(pmid);
+      augmented[enrichmentRename.get("is_oa")!] = u ? formatValue(u.isOA) : "";
+      augmented[enrichmentRename.get("oa_status")!] = u ? u.oaStatus : "";
+      augmented[enrichmentRename.get("oa_url")!] = u?.bestOAUrl ?? "";
+      augmented[enrichmentRename.get("altmetric_score")!] = a ? formatValue(a.score) : "";
+      augmented[enrichmentRename.get("altmetric_url")!] = a?.detailsUrl ?? "";
     }
     if (provenance) {
       augmented[provenanceRename.get("app_version")!] = provenance.appVersion;
