@@ -63,6 +63,7 @@ export function Grader() {
       <Dashboard
         summary={state.summary}
         records={state.records}
+        unpaywall={state.unpaywall}
         requestedPmids={state.requestedPmids}
         totalRows={state.totalRows}
         invalidCount={state.invalidCount}

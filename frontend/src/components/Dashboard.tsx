@@ -12,6 +12,7 @@ import {
 import type { ICiteRecord } from "../lib/icite";
 import { computeSummary } from "../lib/stats";
 import type { Summary } from "../lib/stats";
+import type { UnpaywallRecord } from "../lib/unpaywall";
 
 import { RuleHeading } from "./RuleHeading";
 import { StatCard } from "./StatCard";
@@ -20,6 +21,7 @@ import { YearRangeFilter } from "./YearRangeFilter";
 type Props = {
   summary: Summary;
   records: Map<string, ICiteRecord>;
+  unpaywall: Map<string, UnpaywallRecord>;
   requestedPmids: string[];
   totalRows: number;
   invalidCount: number;
@@ -71,6 +73,7 @@ function yearOf(r: ICiteRecord): number | null {
 export function Dashboard({
   summary: initialSummary,
   records,
+  unpaywall,
   requestedPmids,
   totalRows,
   invalidCount,
@@ -100,11 +103,14 @@ export function Dashboard({
   const isFiltered = from > minYear || to < maxYear;
 
   // Recompute summary on filter change. When unfiltered we keep the initial
-  // summary to skip the work entirely.
+  // summary to skip the work entirely. The Unpaywall lookups and the
+  // PMID→DOI mapping must be threaded through, otherwise the recompute
+  // produces null OA stats and the "Open Access" card blanks to "—".
   const summary: Summary = useMemo(() => {
     if (!isFiltered) return initialSummary;
     const keep = new Set<string>();
     const filtered = new Map<string, ICiteRecord>();
+    const filteredDoiByPmid = new Map<string, string>();
     for (const pmid of requestedPmids) {
       const rec = records.get(pmid);
       if (!rec) continue;
@@ -112,6 +118,8 @@ export function Dashboard({
       if (y !== null && y >= from && y <= to) {
         keep.add(pmid);
         filtered.set(pmid, rec);
+        const doi = rec.doi?.trim();
+        if (doi) filteredDoiByPmid.set(pmid, doi);
       }
     }
     return computeSummary({
@@ -119,8 +127,20 @@ export function Dashboard({
       invalid: invalidCount,
       requestedPmids: requestedPmids.filter((p) => keep.has(p)),
       records: filtered,
+      unpaywallByDoi: unpaywall,
+      doiByPmid: filteredDoiByPmid,
     });
-  }, [from, to, isFiltered, initialSummary, records, requestedPmids, totalRows, invalidCount]);
+  }, [
+    from,
+    to,
+    isFiltered,
+    initialSummary,
+    records,
+    unpaywall,
+    requestedPmids,
+    totalRows,
+    invalidCount,
+  ]);
 
   const rcrAbove1 = summary.rcr.above1Pct;
 
