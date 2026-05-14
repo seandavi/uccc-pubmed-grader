@@ -130,12 +130,13 @@ class ICiteClient:
         url = f"{self._base_url}/pubs"
         params = {"pmids": ",".join(pmids)}
 
+        # Retry only on transient transport errors and explicitly retryable HTTP
+        # statuses (raised as ICiteError below). 4xx errors raised by
+        # `raise_for_status()` are non-retryable and propagate immediately.
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(self._max_attempts),
             wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
-            retry=retry_if_exception_type(
-                (httpx.TransportError, httpx.HTTPStatusError, ICiteError)
-            ),
+            retry=retry_if_exception_type((httpx.TransportError, ICiteError)),
             reraise=True,
         ):
             with attempt:
