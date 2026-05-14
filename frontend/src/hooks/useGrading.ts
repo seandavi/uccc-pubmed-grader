@@ -41,9 +41,22 @@ export function useGrading() {
   const [state, setState] = useState<GradingState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
   const urlRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  // Guard setState against post-unmount calls so an in-flight fetch on a
+  // different route can't stomp on the next page's state.
+  const safeSetState = useCallback(
+    (updater: GradingState | ((s: GradingState) => GradingState)) => {
+      if (!mountedRef.current) return;
+      setState(updater);
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, []);
@@ -54,8 +67,8 @@ export function useGrading() {
       URL.revokeObjectURL(urlRef.current);
       urlRef.current = null;
     }
-    setState(INITIAL);
-  }, []);
+    safeSetState(INITIAL);
+  }, [safeSetState]);
 
   const start = useCallback(
     async (file: File, pmidColumnOverride: string | undefined) => {
@@ -73,7 +86,7 @@ export function useGrading() {
         URL.revokeObjectURL(urlRef.current);
         urlRef.current = null;
       }
-      setState({ ...INITIAL, phase: "parsing", filename: file.name });
+      safeSetState({ ...INITIAL, phase: "parsing", filename: file.name });
 
       let text: string;
       try {
@@ -81,7 +94,7 @@ export function useGrading() {
       } catch (err) {
         const message = err instanceof Error ? err.message : "failed to read file";
         track("processing_error", { phase: "read", error_message: message });
-        setState((s) => ({ ...s, phase: "error", error: message }));
+        safeSetState((s) => ({ ...s, phase: "error", error: message }));
         return;
       }
 
@@ -95,12 +108,12 @@ export function useGrading() {
           error_code: err instanceof CSVParseError ? "csv_parse_error" : "unknown",
           error_message: message,
         });
-        setState((s) => ({ ...s, phase: "error", error: message }));
+        safeSetState((s) => ({ ...s, phase: "error", error: message }));
         return;
       }
 
       const pmids = validPmids(parsed);
-      setState((s) => ({
+      safeSetState((s) => ({
         ...s,
         phase: "fetching",
         processed: 0,
@@ -113,17 +126,17 @@ export function useGrading() {
         for await (const batch of fetchMany(pmids, { signal: controller.signal })) {
           for (const [k, v] of batch.records) records.set(k, v);
           processed += batch.requested.length;
-          setState((s) => ({ ...s, processed }));
+          safeSetState((s) => ({ ...s, processed }));
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         const message = err instanceof Error ? err.message : "iCite fetch failed";
         track("processing_error", { phase: "fetch", error_message: message });
-        setState((s) => ({ ...s, phase: "error", error: message }));
+        safeSetState((s) => ({ ...s, phase: "error", error: message }));
         return;
       }
 
-      setState((s) => ({ ...s, phase: "summarizing" }));
+      safeSetState((s) => ({ ...s, phase: "summarizing" }));
       const summary = computeSummary({
         totalRows: parsed.rows.length,
         invalid: parsed.invalidRows.length,
@@ -145,7 +158,7 @@ export function useGrading() {
         invalid: summary.invalid,
       });
 
-      setState({
+      safeSetState({
         phase: "done",
         processed: pmids.length,
         total: pmids.length,

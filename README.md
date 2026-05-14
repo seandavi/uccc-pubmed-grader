@@ -36,7 +36,7 @@ just build     # static SPA in frontend/dist
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX   # leave empty to disable analytics
 ```
 
-In production, this is supplied via Docker build arg / GCP Secret Manager.
+In production, set the same variable under **Netlify → Site settings → Environment variables**. Vite reads it at build time, so a fresh deploy is required after changing it.
 
 ## CSV format
 

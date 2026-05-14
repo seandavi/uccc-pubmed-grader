@@ -3,9 +3,11 @@
 # the build process and the SPA fallback redirect.
 
 [build]
+  # `publish` is resolved relative to `base`, so with base="frontend" the
+  # publish dir is `frontend/dist` on disk.
   base    = "frontend"
   command = "bun install --frozen-lockfile && bun run build"
-  publish = "frontend/dist"
+  publish = "dist"
 
 [build.environment]
   # Pin a bun new enough to parse the lockfile.

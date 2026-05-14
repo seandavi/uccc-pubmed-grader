@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { About } from "./pages/About";
 import { Grader } from "./pages/Grader";
 
@@ -11,6 +12,7 @@ function Shell() {
 
   return (
     <div className="paper-grain relative min-h-screen text-ink">
+      <ScrollToTop />
       <div className="relative z-10 mx-auto max-w-6xl px-6 pb-8 pt-10 sm:px-10">
         <Header compact={compactHeader} />
         <Routes>
