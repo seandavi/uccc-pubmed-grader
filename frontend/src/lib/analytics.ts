@@ -18,20 +18,28 @@ export function initAnalytics(): void {
   if (!MEASUREMENT_ID) return;
   if (typeof window === "undefined") return;
 
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
+  // Mirror Google's canonical gtag snippet exactly: a plain `function` that
+  // pushes the `arguments` object, NOT a rest-params arrow that pushes a
+  // real Array. gtag.js's queue-replay logic only processes dataLayer
+  // entries whose shape matches `arguments`; Array entries are silently
+  // skipped, no page_view fires, and every subsequent gtag() call is
+  // dropped on the floor (verified empirically against the live site).
   window.dataLayer = window.dataLayer ?? [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer.push(arguments as unknown as unknown[]);
   };
   window.gtag("js", new Date());
   window.gtag("config", MEASUREMENT_ID, {
     anonymize_ip: true,
     send_page_view: true,
   });
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
+  document.head.appendChild(script);
+
   enabled = true;
 }
 
