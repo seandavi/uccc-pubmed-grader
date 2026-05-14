@@ -1,5 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 
+const EXAMPLE_CSV_PATH = "/example-pubmed-grader.csv";
+const EXAMPLE_CSV_FILENAME = "example-pubmed-grader.csv";
+
 type Props = {
   pmidColumn: string;
   onPmidColumnChange: (v: string) => void;
@@ -9,6 +12,8 @@ type Props = {
 export function UploadPanel({ pmidColumn, onPmidColumnChange, onFile }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
+  const [loadingExample, setLoadingExample] = useState(false);
+  const [exampleError, setExampleError] = useState<string | null>(null);
 
   const handleFile = useCallback(
     (file: File | null | undefined) => {
@@ -17,6 +22,21 @@ export function UploadPanel({ pmidColumn, onPmidColumnChange, onFile }: Props) {
     },
     [onFile],
   );
+
+  const loadExample = useCallback(async () => {
+    setLoadingExample(true);
+    setExampleError(null);
+    try {
+      const response = await fetch(EXAMPLE_CSV_PATH);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const file = new File([blob], EXAMPLE_CSV_FILENAME, { type: "text/csv" });
+      onFile(file);
+    } catch (err) {
+      setExampleError(err instanceof Error ? err.message : "failed to load example");
+      setLoadingExample(false);
+    }
+  }, [onFile]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -49,6 +69,38 @@ export function UploadPanel({ pmidColumn, onPmidColumnChange, onFile }: Props) {
             aria-label="PMID column name"
           />
         </label>
+
+        <div className="mt-10 rule-top pt-5">
+          <p className="eyebrow">No CSV handy?</p>
+          <button
+            type="button"
+            onClick={loadExample}
+            disabled={loadingExample}
+            className="mt-3 font-display italic text-xl text-ink hover:text-gold2 disabled:text-muted disabled:cursor-progress transition-colors"
+          >
+            {loadingExample ? "Loading example…" : "Try with example data →"}
+          </button>
+          <p className="mt-2 font-mono text-[0.7rem] text-muted">
+            28-row CSV of cancer-research landmarks (Hallmarks, KEYNOTE, CAR-T,
+            TCGA), spanning 2000–2018. Includes a deliberately invalid row to
+            show error handling.
+          </p>
+          <p className="mt-3 font-mono text-[0.7rem] text-muted">
+            <a
+              href={EXAMPLE_CSV_PATH}
+              download={EXAMPLE_CSV_FILENAME}
+              className="underline underline-offset-4 hover:text-ink"
+            >
+              Download the example
+            </a>{" "}
+            to inspect the columns.
+          </p>
+          {exampleError && (
+            <p className="mt-2 font-mono text-[0.7rem] text-oxblood">
+              Couldn't load example: {exampleError}
+            </p>
+          )}
+        </div>
       </div>
 
       <div

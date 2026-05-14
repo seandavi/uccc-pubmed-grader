@@ -1,0 +1,29 @@
+pmid,investigator,division,year_submitted,grant_number,internal_score
+21376230,L. Chen,Cancer Cell Biology,2012,P30 CA046934,9.5
+10647931,L. Chen,Cancer Cell Biology,2001,P30 CA046934,9.5
+27718847,M. Rodriguez,Thoracic Oncology,2017,R01 CA214568,9.2
+29658856,M. Rodriguez,Thoracic Oncology,2019,R01 CA214568,9.0
+26027431,K. Brennan,Melanoma Program,2016,U54 CA189205,9.4
+21639808,K. Brennan,Melanoma Program,2012,R01 CA176269,8.8
+22658127,J. Sullivan,Developmental Therapeutics,2013,R01 CA182274,8.6
+23724846,J. Sullivan,Developmental Therapeutics,2014,R01 CA182274,8.4
+25317870,A. Patel,Hematologic Malignancies,2015,R01 CA193694,9.1
+24957145,A. Patel,Hematologic Malignancies,2015,R21 CA181111,6.2
+21306238,R. Kim,GI Oncology,2012,K08 CA174746,8.7
+20498393,R. Kim,GI Oncology,2011,R01 CA188317,7.9
+22810696,N. Mehta,GI Oncology,2013,U54 CA163059,9.0
+24132290,N. Mehta,Cancer Cell Biology,2014,P50 CA127003,8.6
+23945592,N. Mehta,Cancer Cell Biology,2014,P50 CA127003,8.8
+28199314,N. Mehta,GI Oncology,2018,R01 CA235375,7.5
+30280658,M. Rodriguez,Thoracic Oncology,2019,R01 CA214568,8.5
+27959613,E. Park,Breast Cancer,2017,R01 CA199018,8.2
+19204204,E. Park,Breast Cancer,2010,R01 CA124904,8.0
+12086872,E. Park,Breast Cancer,2003,R01 CA124904,7.4
+17570226,T. Anderson,GI Oncology,2008,R01 CA112355,7.6
+16710476,T. Anderson,GI Oncology,2007,R21 CA124904,6.9
+25693011,V. Singh,Cancer Prevention and Control,2016,R01 CA204679,8.1
+18948947,D. O'Connor,Thoracic Oncology,2009,R01 CA098101,8.4
+15016963,D. O'Connor,Cancer Cell Biology,2005,R01 CA098101,8.3
+18929686,V. Singh,Cancer Prevention and Control,2010,P30 CA046934,9.8
+99999999,A. Patel,Hematologic Malignancies,2024,R21 CA999999,5.0
+,M. Rodriguez,Thoracic Oncology,2024,R01 CA214568,
