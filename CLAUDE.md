@@ -2,35 +2,38 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Status
-
-The repository has not been scaffolded yet — only `README.md` exists. There is no package layout, no dependency manifest, and no committed code. Treat the README as the spec, not as documentation of an existing system.
-
 ## Product
 
-A web app that accepts a CSV containing a column of PubMed IDs (default column name `pmid`, case-insensitive; column name is user-overridable) plus arbitrary other columns. For each PMID it calls the NIH iCite API, appends all iCite fields to the original row, and returns the augmented CSV.
+A static web app that accepts a CSV containing a column of PubMed IDs (default `pmid`, case-insensitive; overridable), then in the user's browser calls the NIH iCite API to augment each row with bibliometric metrics. After processing it renders a one-page editorial-styled dashboard (RCR distribution, publication year histogram, top journals, top-cited papers) and lets the user download the augmented CSV.
 
-Inputs can be large, so processing is asynchronous: the upload endpoint returns a job handle; the client polls for status and downloads the result when ready.
+iCite enables CORS for browser origins, so no backend is required. **The entire app runs in the browser.** This was a deliberate pivot from an earlier FastAPI + SSE design; do not re-introduce a backend without first questioning whether it's needed.
 
-- Backend: FastAPI (async throughout — `httpx.AsyncClient`, `aiofiles`, etc.)
-- Frontend: React, with `bun` as the package manager / runner where possible
-- Persistence (if/when needed): Postgres via SQLAlchemy async + `asyncpg`. No sync DB drivers.
-- External dependency: iCite API (https://icite.od.nih.gov/api) — the contract on which iCite columns are appended is whatever that API returns; do not hard-code the column list.
-- Task running: `justfile` for common dev/ops commands as the project grows.
-- Deployment: Docker Compose, fronted by Traefik.
+## Stack
 
-## Architectural constraints to honor when scaffolding
+- **Frontend:** React 18 + TypeScript + Vite, installed and built with **bun**.
+- **CSV parsing:** `papaparse` (handles quoting, BOM, blank lines).
+- **Styling:** Tailwind with a custom palette (`paper`, `ink`, `gold`, `oxblood`, `rule`) and three fonts: `Fraunces` (display serif), `DM Sans` (body), `JetBrains Mono` (tabular figures, eyebrows). The visual identity is editorial / scientific quarterly — magazine-style asymmetric grid, small-caps section labels (`.eyebrow`), tabular numerals everywhere stats live.
+- **Charts:** `recharts`.
+- **Tests:** `vitest` + `@testing-library/react` + jsdom.
+- **Deployment:** Multi-stage Docker (bun → nginx static serve), fronted by Traefik (config lives outside this repo at `monode/infrastructure/compose/traefik`).
+- **Analytics:** Google Analytics 4, loaded only when `VITE_GA_MEASUREMENT_ID` is set. The `track()` helper in `src/lib/analytics.ts` is a no-op otherwise.
 
-- **Async end-to-end on the backend.** iCite calls and any file I/O must use async libraries (e.g., `httpx.AsyncClient`, `aiofiles`). Do not block the event loop on sync `requests` or sync file reads — this is the whole reason the design is async.
-- **Job-handle pattern, not request/response.** Upload must return immediately with an ID; the actual fetch + CSV augmentation runs in the background (FastAPI `BackgroundTasks` for a single-process MVP; a real task queue if/when it grows). Status and download are separate endpoints keyed by that ID.
-- **Batch iCite requests.** iCite supports multi-PMID lookups — do not issue one HTTP call per row.
-- **Preserve the user's original columns and row order** in the output CSV; iCite columns are appended.
+## Architecture (very short)
+
+- `src/lib/icite.ts` — async generator that batches PMIDs (default 200/call) and retries transient failures.
+- `src/lib/csv.ts` — papaparse-backed CSV parser + augmenter; renames colliding iCite columns with an `icite_` prefix so user data is preserved.
+- `src/lib/stats.ts` — pure functions that compute the dashboard summary (RCR mean/median/thresholds, RCR + year histograms, top journals, top-cited papers).
+- `src/hooks/useGrading.ts` — orchestrates parse → fetch → stats → Blob URL, surfaces phase/progress/error for the UI.
+- `src/components/{Header,UploadPanel,ProgressPanel,Dashboard,StatCard,RuleHeading}.tsx`.
 
 ## Tooling preferences
 
-- Python: `uv` for dependency management; **src layout** from the start; type hints throughout; `pathlib.Path` or `upath` for paths; `click`/`typer` for any CLI.
-- Frontend: `bun` where possible.
-- Secrets: `.env` (gitignored) for local dev; **GCP Secret Manager** for any non-dev/"official" deployment. Code should read from env vars in both cases — the GCP→env wiring happens at deploy time, not in app code.
-- Deployment: Docker Compose. Traefik handles ingress/TLS; reference config lives at `monode/infrastructure/compose/traefik` (outside this repo).
-- Reference implementation: the `nextflow_telemetry` repo has working examples of this same stack (FastAPI + async + Postgres + Docker Compose + Traefik) — consult it before inventing patterns from scratch.
-- Commit thoroughly and often; branch or use a worktree for substantial changes rather than working on `main`.
+- **bun** for everything (`bun install`, `bun run dev`, `bun run test`, `bun run build`).
+- `just` aggregates the common tasks (`just install`, `just dev`, `just test`, `just build`, `just up` for Docker, `just ci` for the full check).
+- `.env` (gitignored) for local dev; GCP Secret Manager for "official" deploys. The only secret currently is `VITE_GA_MEASUREMENT_ID`.
+- Commit thoroughly and often; branch for substantial changes.
+
+## Don't
+
+- Don't reintroduce a Python backend, a job queue, or an upload endpoint. Files are read in the browser via `FileReader`; the augmented CSV is produced as a `Blob` URL. If you find yourself reaching for a backend, the answer is almost certainly "no, we don't need one."
+- Don't switch the visual identity to a generic dashboard look. The editorial typography + cream/ink/gold palette is the product's personality.

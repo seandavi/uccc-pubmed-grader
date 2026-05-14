@@ -5,69 +5,44 @@ set dotenv-load := true
 default:
     @just --list
 
-# --- Python -------------------------------------------------------------
-
-# Install Python deps (creates .venv via uv)
-install:
-    uv sync --extra dev
-
-# Run the FastAPI dev server with auto-reload
-dev:
-    uv run pubmed-grader serve --reload
-
-# Run the test suite
-test *ARGS:
-    uv run pytest {{ARGS}}
-
-# Lint with ruff
-lint:
-    uv run ruff check src tests
-    uv run ruff format --check src tests
-
-# Auto-fix what ruff can
-fmt:
-    uv run ruff check --fix src tests
-    uv run ruff format src tests
-
-# Type-check
-typecheck:
-    uv run mypy src
-
-# --- Frontend -----------------------------------------------------------
+# --- Frontend (the whole app) -------------------------------------------
 
 # Install frontend deps
-fe-install:
+install:
     cd frontend && bun install
 
-# Run the frontend dev server
-fe-dev:
+# Run the Vite dev server
+dev:
     cd frontend && bun run dev
 
-# Build the frontend for production
-fe-build:
+# Build the static SPA for production
+build:
     cd frontend && bun run build
 
-# Run frontend tests
-fe-test:
-    cd frontend && bun run test
+# Run unit + component tests
+test *ARGS:
+    cd frontend && bun run test {{ARGS}}
+
+# Type-check (no emit)
+lint:
+    cd frontend && bun run lint
 
 # --- E2E ----------------------------------------------------------------
 
-# Run the e2e Playwright suite (assumes services are up)
+# Run the Playwright suite against a running dev server
 e2e:
     cd frontend && bun run e2e
 
 # --- Docker -------------------------------------------------------------
 
-# Build and run the full stack via Docker Compose
+# Build and run the static SPA via Docker Compose (nginx behind Traefik)
 up:
     docker compose up --build
 
-# Stop the stack
 down:
     docker compose down
 
 # --- CI -----------------------------------------------------------------
 
 # Everything CI runs
-ci: lint typecheck test
+ci: lint test build
