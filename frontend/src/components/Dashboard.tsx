@@ -203,6 +203,7 @@ export function Dashboard({
           label="Median RCR"
           value={fmtNumber(summary.rcr.median)}
           hint={summary.rcr.mean !== null ? `mean ${summary.rcr.mean}` : undefined}
+          info="Relative Citation Ratio: a paper's citation rate normalized to the citation rate of its field. RCR = 1 is the NIH-funded median; >2 is high impact. The median is reported because the distribution is heavily right-skewed."
           emphasized
         />
         <StatCard
@@ -210,6 +211,7 @@ export function Dashboard({
           value={fmtPct(rcrAbove1)}
           unit="%"
           hint={summary.rcr.above2Pct !== null ? `${summary.rcr.above2Pct}% above 2×` : undefined}
+          info="Share of papers (with a scored RCR) whose RCR exceeds 1.0 — the median for NIH-funded papers. The hint shows the share above 2× the baseline, the conventional 'high impact' line."
         />
         <StatCard
           label="Open Access"
@@ -220,26 +222,41 @@ export function Dashboard({
               ? `of ${summary.oaResolved} papers with DOI in Unpaywall`
               : "no DOIs to look up"
           }
+          info="Share of papers Unpaywall classifies as Open Access (gold, green, hybrid, or bronze). Counted only over papers whose DOI was found in Unpaywall."
         />
         <StatCard
           label="Clinical"
           value={fmtPct(summary.pctClinical)}
           unit="%"
+          info="Share of matched papers iCite classifies as clinical articles (the `is_clinical` flag). A rough indicator of how much of the portfolio is clinical research."
         />
         <StatCard
           label="Translation potential"
           value={fmtPct(summary.pctHasTranslationPotential)}
           unit="%"
           hint="iCite APT ≥ 0.5"
+          info="Share with iCite's Approximate Potential to Translate (APT) ≥ 0.5. APT estimates how likely a basic-science paper is to be cited downstream by a clinical paper."
         />
         <StatCard
-          label="Median Altmetric"
-          value={fmtNumber(summary.altmetricMedian)}
+          label="Total citations"
+          value={fmtNumber(summary.totalCitations)}
           hint={
-            summary.altmetricCovered > 0
-              ? `${summary.altmetricCovered} papers scored`
-              : "no Altmetric coverage"
+            summary.clinicalCitations !== null
+              ? `${summary.clinicalCitations.toLocaleString()} from clinical articles`
+              : undefined
           }
+          info="Sum of citation_count across the matched papers (overall). The hint shows citations received specifically from clinical articles, per iCite's cited_by_clin field."
+        />
+        <StatCard
+          label="h-index"
+          value={fmtNumber(summary.hIndex)}
+          info="The largest h such that h papers in the portfolio have at least h citations each. Robust to a few highly-cited outliers and to long tails of low-cited papers."
+        />
+        <StatCard
+          label="i10-index"
+          value={fmtNumber(summary.i10Index)}
+          hint="papers with ≥ 10 citations"
+          info="Count of papers in the portfolio with at least 10 citations. Originally popularized by Google Scholar profiles."
         />
       </div>
 
@@ -361,62 +378,6 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* Top by Altmetric attention */}
-      {summary.topByAttention.length > 0 && (
-        <div>
-          <RuleHeading eyebrow="Table III" title="Top by Altmetric attention" />
-          <p className="mt-3 font-sans text-sm text-ink2 max-w-xl">
-            Altmetric Attention Score weights mentions across news, social, policy, and patents.
-            High score ≠ high quality — but it does flag papers with visible public uptake.
-          </p>
-          <ol className="mt-8 grid gap-5 md:grid-cols-2">
-            {summary.topByAttention.map((p, i) => (
-              <li key={p.pmid} className="border-b hairline pb-4">
-                <p className="flex items-baseline gap-3 font-mono text-[0.7rem] text-muted tabular">
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  <span>
-                    {p.journal}
-                    {p.year && <> · {p.year}</>}
-                  </span>
-                </p>
-                <h4 className="mt-1 font-display text-base leading-snug text-ink">
-                  {p.title || "Untitled"}
-                </h4>
-                <div className="mt-2 flex items-baseline gap-6 font-mono text-xs">
-                  <span className="tabular">
-                    <span className="text-muted">attention </span>
-                    <span className="text-ink">{fmtNumber(p.altmetricScore)}</span>
-                  </span>
-                  <span className="tabular">
-                    <span className="text-muted">cites </span>
-                    <span className="text-ink">{fmtNumber(p.citationCount)}</span>
-                  </span>
-                  {p.altmetricUrl ? (
-                    <a
-                      className="ml-auto text-ink2 hover:text-ink underline-offset-4 hover:underline"
-                      href={p.altmetricUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Details ↗
-                    </a>
-                  ) : (
-                    <a
-                      className="ml-auto text-ink2 hover:text-ink underline-offset-4 hover:underline"
-                      href={`https://pubmed.ncbi.nlm.nih.gov/${p.pmid}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      PMID {p.pmid} ↗
-                    </a>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
       {/* OA breakdown (only when we have any) */}
       {summary.oaBreakdown.length > 0 && (
         <div>
@@ -450,7 +411,7 @@ export function Dashboard({
       {/* Footer rule */}
       <div className="rule-top pt-6">
         <p className="eyebrow text-muted">
-          End of issue · Data via NIH iCite, Unpaywall, Altmetric. Computed in your browser.
+          End of issue · Data via NIH iCite and Unpaywall. Computed in your browser.
         </p>
       </div>
     </section>

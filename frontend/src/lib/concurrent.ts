@@ -2,8 +2,8 @@
  * Run an async `worker` over `items` with a fixed concurrency cap, calling
  * `onProgress` after each item completes. Order of results matches `items`.
  *
- * Used to spread per-record Unpaywall / Altmetric calls across N in-flight
- * requests without firing thousands at once.
+ * Used to spread per-record Unpaywall calls across N in-flight requests
+ * without firing thousands at once.
  */
 
 export type WorkerResult<R> = { ok: true; value: R } | { ok: false; error: unknown };

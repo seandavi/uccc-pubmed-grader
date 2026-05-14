@@ -6,7 +6,6 @@
  * closest available proxy.
  */
 
-import type { AltmetricRecord } from "./altmetric";
 import type { ICiteRecord } from "./icite";
 import type { OAStatus, UnpaywallRecord } from "./unpaywall";
 
@@ -22,8 +21,6 @@ export type TopPaper = {
   year: number | null;
   citationCount: number | null;
   relativeCitationRatio: number | null;
-  altmetricScore: number | null;
-  altmetricUrl: string | null;
 };
 
 export type Summary = {
@@ -47,11 +44,12 @@ export type Summary = {
   pctOpenAccess: number | null;
   oaBreakdown: OABreakdown[];
   oaResolved: number; // matched papers that had a DOI Unpaywall could check
-  altmetricMean: number | null;
-  altmetricMedian: number | null;
-  altmetricCovered: number; // matched papers with any Altmetric score
+  // Aggregate citation metrics over the matched set.
+  totalCitations: number | null;
+  clinicalCitations: number | null; // citations received from clinical papers (iCite `cited_by_clin`)
+  hIndex: number | null;
+  i10Index: number | null;
   topCitedPapers: TopPaper[];
-  topByAttention: TopPaper[];
 };
 
 function asFloat(v: unknown): number | null {
@@ -120,8 +118,6 @@ export type ComputeArgs = {
   records: Map<string, ICiteRecord>;
   /** Unpaywall lookups keyed by DOI (lower-case is fine; we don't normalize). */
   unpaywallByDoi?: Map<string, UnpaywallRecord>;
-  /** Altmetric lookups keyed by PMID. */
-  altmetricByPmid?: Map<string, AltmetricRecord>;
   /** Map PMID → DOI for the joined Unpaywall lookup. */
   doiByPmid?: Map<string, string>;
   topNPapers?: number;
@@ -192,41 +188,26 @@ export function computeSummary(args: ComputeArgs): Summary {
 
   // Helpers to look up enrichments per matched PMID
   const unpaywall = args.unpaywallByDoi ?? new Map<string, UnpaywallRecord>();
-  const altmetric = args.altmetricByPmid ?? new Map<string, AltmetricRecord>();
   const doiByPmid = args.doiByPmid ?? new Map<string, string>();
   const unpaywallFor = (pmid: string): UnpaywallRecord | undefined => {
     const doi = doiByPmid.get(pmid);
     return doi ? unpaywall.get(doi) : undefined;
   };
 
-  const toTopPaper = (r: ICiteRecord): TopPaper => {
-    const pmid = String(r.pmid ?? "");
-    const am = altmetric.get(pmid);
-    return {
-      pmid,
-      title: r.title ?? "",
-      journal: r.journal ?? "",
-      year: asInt(r.year),
-      citationCount: asInt(r.citation_count),
-      relativeCitationRatio: asFloat(r.relative_citation_ratio),
-      altmetricScore: am?.score ?? null,
-      altmetricUrl: am?.detailsUrl ?? null,
-    };
-  };
+  const toTopPaper = (r: ICiteRecord): TopPaper => ({
+    pmid: String(r.pmid ?? ""),
+    title: r.title ?? "",
+    journal: r.journal ?? "",
+    year: asInt(r.year),
+    citationCount: asInt(r.citation_count),
+    relativeCitationRatio: asFloat(r.relative_citation_ratio),
+  });
 
   // Top cited
   const topCitedPapers: TopPaper[] = [...matchedRecords]
     .sort((a, b) => (asInt(b.citation_count) ?? -1) - (asInt(a.citation_count) ?? -1))
     .slice(0, topNPapers)
     .map(toTopPaper);
-
-  // Top by altmetric attention
-  const topByAttention: TopPaper[] = [...matchedRecords]
-    .map((r) => ({ r, am: altmetric.get(String(r.pmid ?? "")) }))
-    .filter(({ am }) => am !== undefined && am.score > 0)
-    .sort((a, b) => (b.am?.score ?? 0) - (a.am?.score ?? 0))
-    .slice(0, topNPapers)
-    .map(({ r }) => toTopPaper(r));
 
   // Open Access aggregations
   const oaCounts = new Map<OAStatus, number>();
@@ -245,15 +226,36 @@ export function computeSummary(args: ComputeArgs): Summary {
     .map(([status, count]) => ({ status, count }));
   const pctOpenAccess = oaResolved > 0 ? _pctOf(openCount, oaResolved) : null;
 
-  // Altmetric aggregations
-  const altScores: number[] = [];
+  // Aggregate citation metrics. h-index = largest h such that h papers have
+  // ≥h citations each. i10 = count of papers with ≥10 citations. Clinical
+  // citations are the count of PMIDs in iCite's `cited_by_clin` field.
+  const citationCounts: number[] = [];
+  let totalCitations = 0;
+  let clinicalCitations = 0;
+  let haveAnyCitationData = false;
+  let haveAnyClinicalData = false;
   for (const r of matchedRecords) {
-    const am = altmetric.get(String(r.pmid ?? ""));
-    if (am && am.score > 0) altScores.push(am.score);
+    const c = asInt(r.citation_count);
+    if (c !== null) {
+      haveAnyCitationData = true;
+      citationCounts.push(c);
+      totalCitations += c;
+    }
+    if (typeof r.cited_by_clin === "string") {
+      haveAnyClinicalData = true;
+      const tokens = r.cited_by_clin.trim();
+      if (tokens.length > 0) {
+        clinicalCitations += tokens.split(/\s+/).length;
+      }
+    }
   }
-  const altmetricCovered = altScores.length;
-  const altmetricMean = altScores.length ? Math.round(mean(altScores) * 100) / 100 : null;
-  const altmetricMedian = altScores.length ? Math.round(median(altScores) * 100) / 100 : null;
+  const sortedDesc = [...citationCounts].sort((a, b) => b - a);
+  let hIndex = 0;
+  for (let i = 0; i < sortedDesc.length; i += 1) {
+    if (sortedDesc[i] >= i + 1) hIndex = i + 1;
+    else break;
+  }
+  const i10Index = citationCounts.filter((c) => c >= 10).length;
 
   return {
     totalRows: args.totalRows,
@@ -276,11 +278,11 @@ export function computeSummary(args: ComputeArgs): Summary {
     pctOpenAccess,
     oaBreakdown,
     oaResolved,
-    altmetricMean,
-    altmetricMedian,
-    altmetricCovered,
+    totalCitations: haveAnyCitationData ? totalCitations : null,
+    clinicalCitations: haveAnyClinicalData ? clinicalCitations : null,
+    hIndex: haveAnyCitationData ? hIndex : null,
+    i10Index: haveAnyCitationData ? i10Index : null,
     topCitedPapers,
-    topByAttention,
   };
 }
 

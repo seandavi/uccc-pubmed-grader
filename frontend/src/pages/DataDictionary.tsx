@@ -11,7 +11,6 @@ import type { ColumnDoc } from "../lib/columnDictionary";
 const PILL_STYLES: Record<ColumnDoc["source"], string> = {
   iCite: "bg-ink text-paper",
   Unpaywall: "bg-gold text-ink",
-  Altmetric: "bg-oxblood text-paper",
   App: "bg-gold/20 text-ink border border-gold",
 };
 
@@ -29,7 +28,6 @@ export function DataDictionary() {
   const grouped = {
     iCite: COLUMN_DICTIONARY.filter((c) => c.source === "iCite"),
     Unpaywall: COLUMN_DICTIONARY.filter((c) => c.source === "Unpaywall"),
-    Altmetric: COLUMN_DICTIONARY.filter((c) => c.source === "Altmetric"),
     App: COLUMN_DICTIONARY.filter((c) => c.source === "App"),
   };
 
@@ -51,7 +49,6 @@ export function DataDictionary() {
 
       <Section title="From NIH iCite" docs={grouped.iCite} />
       <Section title="From Unpaywall (Open Access)" docs={grouped.Unpaywall} />
-      <Section title="From Altmetric (attention)" docs={grouped.Altmetric} />
       <Section title="Added by this app" docs={grouped.App} />
 
       <div className="rule-top pt-6">

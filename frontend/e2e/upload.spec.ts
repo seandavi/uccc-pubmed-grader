@@ -43,26 +43,6 @@ test("upload → process → dashboard → download", async ({ page }) => {
       }),
     });
   });
-  // Mock Altmetric: a few PMIDs have scores, others 404.
-  const altmetricScores: Record<string, number> = {
-    "22439929": 250,
-    "27599876": 80,
-  };
-  await page.route("**/api.altmetric.com/**", async (route) => {
-    const url = route.request().url();
-    const pmid = url.split("/").pop() ?? "";
-    const score = altmetricScores[pmid];
-    if (score === undefined) {
-      await route.fulfill({ status: 404 });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ pmid, score, details_url: `https://altmetric.com/${pmid}` }),
-    });
-  });
-
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Publication Impact Grader/i })).toBeVisible();
 
@@ -76,20 +56,16 @@ test("upload → process → dashboard → download", async ({ page }) => {
     timeout: 15_000,
   });
 
-  // KPI cards rendered with non-empty values, including the new OA + Altmetric tiles
+  // KPI cards rendered with non-empty values, including the OA tile
   for (const label of [
     "Median RCR",
     "Above NIH baseline",
     "Open Access",
     "Clinical",
     "Translation potential",
-    "Median Altmetric",
   ]) {
     await expect(page.getByText(label, { exact: true })).toBeVisible();
   }
-
-  // Top by Altmetric attention table shows our top-scored paper
-  await expect(page.getByRole("heading", { name: "Top by Altmetric attention" })).toBeVisible();
 
   // Top-cited papers section shows real entries
   await expect(page.getByRole("heading", { name: "Top-cited papers" })).toBeVisible();
@@ -113,7 +89,6 @@ test("upload → process → dashboard → download", async ({ page }) => {
   expect(header).toContain("citation_count");
   expect(header).toContain("is_oa");
   expect(header).toContain("oa_status");
-  expect(header).toContain("altmetric_score");
   expect(header).toContain("app_version");
   expect(header).toContain("date_run");
   expect(text).toContain("Hallmarks of cancer: next generation");
@@ -123,7 +98,6 @@ test("invalid PMID column surfaces error state", async ({ page }) => {
   // Don't even need to mock anything — parsing fails before any HTTP call.
   await page.route("**/icite.od.nih.gov/**", (route) => route.abort());
   await page.route("**/api.unpaywall.org/**", (route) => route.abort());
-  await page.route("**/api.altmetric.com/**", (route) => route.abort());
 
   await page.goto("/");
   await page.getByLabel("PMID column name").fill("nonexistent_column");

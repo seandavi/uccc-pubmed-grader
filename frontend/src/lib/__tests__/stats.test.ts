@@ -160,8 +160,47 @@ describe("computeSummary", () => {
     expect(s.topJournals).toEqual([]);
     expect(s.topCitedPapers).toEqual([]);
     expect(s.pctOpenAccess).toBeNull();
-    expect(s.altmetricMedian).toBeNull();
-    expect(s.topByAttention).toEqual([]);
+  });
+
+  it("computes total citations, clinical citations, h-index, and i10", () => {
+    const records = new Map([
+      ["1", rec(1, { citation_count: 10, cited_by_clin: "100 101 102" })],
+      ["2", rec(2, { citation_count: 8, cited_by_clin: "" })],
+      ["3", rec(3, { citation_count: 5, cited_by_clin: "200" })],
+      ["4", rec(4, { citation_count: 4 })],
+      ["5", rec(5, { citation_count: 3 })],
+    ]);
+    const s = computeSummary({
+      totalRows: 5,
+      invalid: 0,
+      requestedPmids: [...records.keys()],
+      records,
+    });
+    // 10 + 8 + 5 + 4 + 3 = 30
+    expect(s.totalCitations).toBe(30);
+    // Clinical citations come from cited_by_clin: "100 101 102" + "200" = 4
+    expect(s.clinicalCitations).toBe(4);
+    // sorted desc [10,8,5,4,3]: h=4 (4 papers each ≥4 citations)
+    expect(s.hIndex).toBe(4);
+    // i10: papers with ≥10 citations = 1
+    expect(s.i10Index).toBe(1);
+  });
+
+  it("returns nulls for citation metrics when citation_count is absent", () => {
+    const records = new Map([
+      ["1", rec(1, { citation_count: null })],
+      ["2", rec(2, { citation_count: null })],
+    ]);
+    const s = computeSummary({
+      totalRows: 2,
+      invalid: 0,
+      requestedPmids: [...records.keys()],
+      records,
+    });
+    expect(s.totalCitations).toBeNull();
+    expect(s.hIndex).toBeNull();
+    expect(s.i10Index).toBeNull();
+    expect(s.clinicalCitations).toBeNull();
   });
 
   it("computes pctOpenAccess and OA breakdown from Unpaywall results", () => {
@@ -196,30 +235,4 @@ describe("computeSummary", () => {
     expect(s.oaBreakdown.find((b) => b.status === "closed")?.count).toBe(1);
   });
 
-  it("computes Altmetric aggregations and topByAttention", () => {
-    const records = new Map([
-      ["1", rec(1, { title: "Paper 1" })],
-      ["2", rec(2, { title: "Paper 2" })],
-      ["3", rec(3, { title: "Paper 3" })],
-    ]);
-    const altmetric = new Map([
-      ["1", { pmid: "1", score: 100, detailsUrl: "https://am/1" }],
-      ["2", { pmid: "2", score: 5, detailsUrl: null }],
-      // PMID 3 has no Altmetric data
-    ]);
-    const s = computeSummary({
-      totalRows: 3,
-      invalid: 0,
-      requestedPmids: [...records.keys()],
-      records,
-      altmetricByPmid: altmetric,
-    });
-    expect(s.altmetricCovered).toBe(2);
-    expect(s.altmetricMean).toBe(52.5);
-    expect(s.altmetricMedian).toBe(52.5);
-    expect(s.topByAttention[0].pmid).toBe("1");
-    expect(s.topByAttention[0].altmetricScore).toBe(100);
-    expect(s.topByAttention[0].altmetricUrl).toBe("https://am/1");
-    expect(s.topByAttention.length).toBe(2);
-  });
 });

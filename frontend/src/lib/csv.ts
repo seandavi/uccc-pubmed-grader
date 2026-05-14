@@ -12,7 +12,6 @@
 
 import Papa from "papaparse";
 
-import type { AltmetricRecord } from "./altmetric";
 import type { ICiteRecord } from "./icite";
 import type { UnpaywallRecord } from "./unpaywall";
 
@@ -138,18 +137,10 @@ export type Provenance = {
   dateRun: string; // ISO timestamp
   /** Optional Unpaywall results keyed by DOI. */
   unpaywallByDoi?: Map<string, UnpaywallRecord>;
-  /** Optional Altmetric results keyed by PMID. */
-  altmetricByPmid?: Map<string, AltmetricRecord>;
 };
 
 // Order matters — this is the column order in the output CSV.
-const ENRICHMENT_COLUMNS = [
-  "is_oa",
-  "oa_status",
-  "oa_url",
-  "altmetric_score",
-  "altmetric_url",
-] as const;
+const ENRICHMENT_COLUMNS = ["is_oa", "oa_status", "oa_url"] as const;
 
 const PROVENANCE_COLUMNS = ["app_version", "date_run"] as const;
 
@@ -163,9 +154,9 @@ export function writeAugmentedCSV(
   const outputCols: string[] = [...parsed.fieldnames];
   for (const src of icite) outputCols.push(rename.get(src)!);
 
-  // Resolve enrichment (OA + Altmetric) and provenance column names against
-  // the same collision rules so a user CSV that already has e.g. an
-  // `is_oa` column isn't overwritten.
+  // Resolve enrichment (OA) and provenance column names against the same
+  // collision rules so a user CSV that already has e.g. an `is_oa` column
+  // isn't overwritten.
   const reserveName = (used: Set<string>, src: string): string => {
     let candidate = src;
     if (used.has(candidate.toLowerCase())) candidate = `icite_${src}`;
@@ -183,9 +174,7 @@ export function writeAugmentedCSV(
   const enrichmentRename = new Map<string, string>();
   const provenanceRename = new Map<string, string>();
   const wantsEnrichment =
-    provenance &&
-    ((provenance.unpaywallByDoi && provenance.unpaywallByDoi.size > 0) ||
-      (provenance.altmetricByPmid && provenance.altmetricByPmid.size > 0));
+    provenance && provenance.unpaywallByDoi && provenance.unpaywallByDoi.size > 0;
 
   if (wantsEnrichment) {
     for (const src of ENRICHMENT_COLUMNS) {
@@ -204,7 +193,6 @@ export function writeAugmentedCSV(
   }
 
   const unpaywallByDoi = provenance?.unpaywallByDoi;
-  const altmetricByPmid = provenance?.altmetricByPmid;
 
   const rows = parsed.rows.map((row) => {
     const pmid = (row[parsed.pmidColumn] ?? "").trim();
@@ -217,12 +205,9 @@ export function writeAugmentedCSV(
     if (wantsEnrichment) {
       const doi = record?.doi?.trim();
       const u = doi ? unpaywallByDoi?.get(doi) : undefined;
-      const a = altmetricByPmid?.get(pmid);
       augmented[enrichmentRename.get("is_oa")!] = u ? formatValue(u.isOA) : "";
       augmented[enrichmentRename.get("oa_status")!] = u ? u.oaStatus : "";
       augmented[enrichmentRename.get("oa_url")!] = u?.bestOAUrl ?? "";
-      augmented[enrichmentRename.get("altmetric_score")!] = a ? formatValue(a.score) : "";
-      augmented[enrichmentRename.get("altmetric_url")!] = a?.detailsUrl ?? "";
     }
     if (provenance) {
       augmented[provenanceRename.get("app_version")!] = provenance.appVersion;

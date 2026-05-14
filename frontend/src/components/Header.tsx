@@ -37,6 +37,16 @@ export function Header({ compact = false }: Props) {
               A bibliometric reading room for the University of Colorado Cancer Center. Drop a
               CSV of PubMed IDs; we'll fetch each paper's NIH iCite metrics in your browser and
               produce a portfolio summary with RCR distribution, citation tail, and journal mix.
+              We also cross-reference each paper's DOI against{" "}
+              <a
+                className="underline underline-offset-4 hover:text-ink"
+                href="https://unpaywall.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Unpaywall
+              </a>{" "}
+              to flag Open Access status (gold, green, hybrid, bronze, or closed).
             </p>
           )}
         </div>

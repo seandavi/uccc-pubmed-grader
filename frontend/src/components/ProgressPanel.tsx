@@ -12,7 +12,7 @@ const PHASE_LABEL: Record<Phase, string> = {
   idle: "",
   parsing: "Reading CSV",
   fetching: "Consulting iCite",
-  augmenting: "Checking Open Access and Altmetric",
+  augmenting: "Checking Open Access",
   summarizing: "Drawing dashboard",
   done: "Complete",
   error: "Halted",
