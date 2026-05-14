@@ -4,6 +4,7 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { About } from "./pages/About";
+import { DataDictionary } from "./pages/DataDictionary";
 import { Grader } from "./pages/Grader";
 
 function Shell() {
@@ -18,6 +19,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Grader />} />
           <Route path="/about" element={<About />} />
+          <Route path="/columns" element={<DataDictionary />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Footer />

@@ -14,6 +14,7 @@ import type { ICiteRecord } from "../lib/icite";
 import { computeSummary } from "../lib/stats";
 import type { Summary } from "../lib/stats";
 import { track } from "../lib/analytics";
+import { versionLabel } from "../lib/version";
 
 export type Phase = "idle" | "parsing" | "fetching" | "summarizing" | "done" | "error";
 
@@ -154,7 +155,10 @@ export function useGrading() {
         requestedPmids: pmids,
         records,
       });
-      const augmented = writeAugmentedCSV(parsed, records, ICITE_COLUMNS);
+      const augmented = writeAugmentedCSV(parsed, records, ICITE_COLUMNS, {
+        appVersion: versionLabel(),
+        dateRun: new Date().toISOString(),
+      });
       const blob = new Blob([augmented], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       urlRef.current = url;
