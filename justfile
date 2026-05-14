@@ -19,6 +19,10 @@ dev:
 build:
     cd frontend && bun run build
 
+# Preview the production build locally
+preview:
+    cd frontend && bun run build && bunx vite preview
+
 # Run unit + component tests
 test *ARGS:
     cd frontend && bun run test {{ARGS}}
@@ -29,20 +33,15 @@ lint:
 
 # --- E2E ----------------------------------------------------------------
 
-# Run the Playwright suite against a running dev server
+# One-time install of Playwright browsers
+e2e-install:
+    cd frontend && bun run e2e:install
+
+# Run the Playwright suite (boots its own vite preview)
 e2e:
     cd frontend && bun run e2e
-
-# --- Docker -------------------------------------------------------------
-
-# Build and run the static SPA via Docker Compose (nginx behind Traefik)
-up:
-    docker compose up --build
-
-down:
-    docker compose down
 
 # --- CI -----------------------------------------------------------------
 
 # Everything CI runs
-ci: lint test build
+ci: lint test build e2e
