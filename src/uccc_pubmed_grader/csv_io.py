@@ -69,7 +69,10 @@ def parse_csv(content: bytes | str, *, pmid_column: str | None = None) -> Parsed
     Invalid PMIDs are recorded with their 1-indexed row number but rows are kept
     in the output (so the augmented CSV mirrors the input shape).
     """
-    text = content.decode("utf-8-sig") if isinstance(content, bytes) else content
+    if isinstance(content, bytes):
+        text = content.decode("utf-8-sig")
+    else:
+        text = content.removeprefix("﻿")
     if not text.strip():
         raise CSVParseError("CSV is empty")
 
@@ -107,13 +110,48 @@ def _format_value(value: object) -> str:
     return str(value)
 
 
+ICITE_PREFIX = "icite_"
+
+
+def _resolve_output_columns(
+    user_fieldnames: list[str], icite_columns: tuple[str, ...]
+) -> dict[str, str]:
+    """Map each iCite source key to a unique output column name.
+
+    If an iCite column collides with an existing user column (case-insensitive),
+    prefix it with `icite_`. If even the prefixed name collides, append `_2`,
+    `_3`, ... until unique.
+    """
+    existing = {name.strip().lower() for name in user_fieldnames}
+    out: dict[str, str] = {}
+    used = set(existing)
+    for src in icite_columns:
+        candidate = src
+        if candidate.strip().lower() in used:
+            candidate = f"{ICITE_PREFIX}{src}"
+        base = candidate
+        n = 2
+        while candidate.strip().lower() in used:
+            candidate = f"{base}_{n}"
+            n += 1
+        out[src] = candidate
+        used.add(candidate.strip().lower())
+    return out
+
+
 def write_augmented_csv(
     parsed: ParsedCSV,
     records: dict[str, dict[str, object]],
     icite_columns: tuple[str, ...],
 ) -> str:
-    """Return the CSV text of original rows with iCite columns appended."""
-    fieldnames = list(parsed.fieldnames) + list(icite_columns)
+    """Return the CSV text of original rows with iCite columns appended.
+
+    If any iCite column name collides with a column the user already had,
+    the iCite version is renamed with an `icite_` prefix so original cells
+    are preserved unchanged.
+    """
+    rename = _resolve_output_columns(parsed.fieldnames, icite_columns)
+    fieldnames = list(parsed.fieldnames) + [rename[c] for c in icite_columns]
     buffer = io.StringIO()
     writer = csv.DictWriter(buffer, fieldnames=fieldnames, extrasaction="ignore")
     writer.writeheader()
@@ -121,8 +159,8 @@ def write_augmented_csv(
         pmid = (row.get(parsed.pmid_column) or "").strip()
         record = records.get(pmid, {})
         augmented = dict(row)
-        for col in icite_columns:
-            augmented[col] = _format_value(record.get(col))
+        for src, dest in rename.items():
+            augmented[dest] = _format_value(record.get(src))
         writer.writerow(augmented)
     return buffer.getvalue()
 

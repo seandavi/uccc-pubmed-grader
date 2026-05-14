@@ -60,7 +60,11 @@ class Summary:
 
     top_journals: list[JournalCount]
 
-    pct_with_rcr: float | None  # share of matched records iCite was able to score
+    # iCite's /api/pubs does not expose NIH grant attribution per paper, so a
+    # direct "% NIH-funded" is not available from this data source. The closest
+    # proxy is `pct_with_rcr` (papers iCite was able to score with an RCR),
+    # which approximates NIH-recognized publication records.
+    pct_with_rcr: float | None
     pct_clinical: float | None
     pct_animal: float | None
     pct_has_translation_potential: float | None

@@ -67,6 +67,12 @@ def test_parse_csv_bom_handled() -> None:
     assert parsed.valid_pmids == ["111"]
 
 
+def test_parse_csv_bom_handled_for_str_input() -> None:
+    parsed = parse_csv("﻿pmid,author\n111,Smith\n")
+    assert parsed.pmid_column == "pmid"
+    assert parsed.valid_pmids == ["111"]
+
+
 def test_parse_csv_empty_column_name_rejected() -> None:
     with pytest.raises(CSVParseError, match="empty"):
         parse_csv("pmid\n111\n", pmid_column="   ")
@@ -112,6 +118,36 @@ def test_write_augmented_csv_renders_booleans_lowercase() -> None:
     augmented = write_augmented_csv(parsed, {"111": {"is_clinical": True}}, ("is_clinical",))
     rows = list(csv.DictReader(io.StringIO(augmented)))
     assert rows[0]["is_clinical"] == "true"
+
+
+def test_write_augmented_csv_renames_colliding_icite_columns() -> None:
+    parsed = parse_csv("pmid,year,title\n111,1999,User Title\n")
+    augmented = write_augmented_csv(
+        parsed,
+        {"111": {"year": 2020, "title": "iCite Title"}},
+        ("year", "title", "journal"),
+    )
+    reader = csv.DictReader(io.StringIO(augmented))
+    assert reader.fieldnames == [
+        "pmid",
+        "year",
+        "title",
+        "icite_year",
+        "icite_title",
+        "journal",
+    ]
+    rows = list(reader)
+    assert rows[0]["year"] == "1999"
+    assert rows[0]["title"] == "User Title"
+    assert rows[0]["icite_year"] == "2020"
+    assert rows[0]["icite_title"] == "iCite Title"
+
+
+def test_write_augmented_csv_collision_case_insensitive() -> None:
+    parsed = parse_csv("pmid,Year\n111,1999\n")
+    augmented = write_augmented_csv(parsed, {"111": {"year": 2020}}, ("year",))
+    reader = csv.DictReader(io.StringIO(augmented))
+    assert reader.fieldnames == ["pmid", "Year", "icite_year"]
 
 
 def test_iter_valid_pmid_chunks() -> None:
