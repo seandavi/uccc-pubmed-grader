@@ -120,7 +120,17 @@ async function fetchOnce(
   if (!response.ok) {
     throw new ICiteError(`iCite returned ${response.status}`);
   }
-  const payload = (await response.json()) as { data?: ICiteRecord[] };
+  let payload: { data?: ICiteRecord[] };
+  try {
+    payload = (await response.json()) as { data?: ICiteRecord[] };
+  } catch (err) {
+    // iCite is meant to return JSON; if a proxy or edge returned HTML we'd
+    // hit SyntaxError here. Surface it as a (non-retryable) ICiteError so
+    // the UI sees a clean message instead of a raw parser exception.
+    throw new ICiteError(
+      `iCite returned non-JSON response: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.data)) {
     throw new ICiteError("unexpected iCite response shape");
   }

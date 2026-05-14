@@ -26,12 +26,16 @@ describe("parseCSV", () => {
     expect(() => parseCSV("foo,bar\n1,2\n")).toThrow(CSVParseError);
   });
 
-  it("records invalid PMIDs but keeps rows", () => {
+  it("records invalid-PMID rows but drops fully blank lines", () => {
     const parsed = parseCSV("pmid\n111\nabc\n\n");
-    // Note: PapaParse with skipEmptyLines:'greedy' drops the blank row
     expect(parsed.rows.length).toBe(2);
     expect(validPmids(parsed)).toEqual(["111"]);
     expect(parsed.invalidRows.map((r) => r.value)).toEqual(["abc"]);
+  });
+
+  it("surfaces fatal PapaParse errors as CSVParseError", () => {
+    // Unterminated quote — PapaParse reports a Quotes error
+    expect(() => parseCSV('pmid,note\n111,"unterminated\n')).toThrow(CSVParseError);
   });
 
   it("dedupes PMIDs", () => {

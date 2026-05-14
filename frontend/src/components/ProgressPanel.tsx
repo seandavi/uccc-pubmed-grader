@@ -18,8 +18,16 @@ const PHASE_LABEL: Record<Phase, string> = {
 };
 
 export function ProgressPanel({ phase, processed, total, filename, onCancel }: Props) {
+  // When `total` is 0 we don't have a meaningful percentage yet (e.g. mid-parse,
+  // or the CSV contained no valid PMIDs). Use an indeterminate sliver during
+  // parsing; afterwards show 0 so the bar doesn't lie.
   const pct =
-    total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : phase === "parsing" ? 5 : 50;
+    total > 0
+      ? Math.min(100, Math.round((processed / total) * 100))
+      : phase === "parsing"
+        ? 5
+        : 0;
+  const showCounter = total > 0;
 
   return (
     <section className="mt-16 max-w-3xl animate-fade-in-up">
@@ -36,8 +44,15 @@ export function ProgressPanel({ phase, processed, total, filename, onCancel }: P
         <div className="flex items-baseline justify-between font-mono text-xs">
           <span className="eyebrow">Progress</span>
           <span className="tabular text-ink">
-            {processed.toLocaleString()}<span className="text-muted"> / </span>
-            {total.toLocaleString()} PMIDs · {pct}%
+            {showCounter ? (
+              <>
+                {processed.toLocaleString()}
+                <span className="text-muted"> / </span>
+                {total.toLocaleString()} PMIDs · {pct}%
+              </>
+            ) : (
+              <span className="text-muted">working…</span>
+            )}
           </span>
         </div>
         <div className="mt-3 h-[3px] w-full bg-rule overflow-hidden">

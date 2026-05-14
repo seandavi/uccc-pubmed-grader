@@ -2,7 +2,10 @@
  * CSV parsing + augmentation, run entirely in the browser.
  *
  * - Detects PMID column case-insensitively (default `pmid`); allows override.
- * - Validates PMIDs (`^\d{1,9}$`); invalid rows are kept and reported.
+ * - Validates PMIDs (`^\d{1,9}$`); rows whose PMID fails validation are KEPT
+ *   in the output and reported via `invalidRows`. Fully blank lines, on the
+ *   other hand, are dropped — they're treated as input whitespace rather
+ *   than user data.
  * - On augment, renames iCite columns that collide with user columns by
  *   prefixing with `icite_` so user data is preserved unchanged.
  */
@@ -51,9 +54,20 @@ export function parseCSV(content: string, pmidColumn?: string): ParsedCSV {
 
   const parsed = Papa.parse<Record<string, string>>(text, {
     header: true,
+    delimiter: ",",
     skipEmptyLines: "greedy",
     transformHeader: (h) => h,
   });
+  // PapaParse reports structural problems in `errors`. Surface only true
+  // parser-level failures (e.g. mismatched quotes). Field-count mismatches
+  // and delimiter-detection warnings are noise on small/single-column CSVs.
+  const fatal = parsed.errors.filter(
+    (e) => e.type !== "FieldMismatch" && e.type !== "Delimiter",
+  );
+  if (fatal.length > 0) {
+    throw new CSVParseError(`CSV parse error: ${fatal[0].message}`);
+  }
+
   const fieldnames = (parsed.meta.fields ?? []).slice();
   if (fieldnames.length === 0) throw new CSVParseError("CSV has no header row");
 

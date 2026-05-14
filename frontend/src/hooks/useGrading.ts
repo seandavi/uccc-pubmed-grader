@@ -80,7 +80,7 @@ export function useGrading() {
         text = await file.text();
       } catch (err) {
         const message = err instanceof Error ? err.message : "failed to read file";
-        track("processing_error", { phase: "read", message });
+        track("processing_error", { phase: "read", error_message: message });
         setState((s) => ({ ...s, phase: "error", error: message }));
         return;
       }
@@ -92,7 +92,8 @@ export function useGrading() {
         const message = err instanceof Error ? err.message : "failed to parse CSV";
         track("processing_error", {
           phase: "parse",
-          message: err instanceof CSVParseError ? "csv_parse_error" : "unknown",
+          error_code: err instanceof CSVParseError ? "csv_parse_error" : "unknown",
+          error_message: message,
         });
         setState((s) => ({ ...s, phase: "error", error: message }));
         return;
@@ -117,7 +118,7 @@ export function useGrading() {
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         const message = err instanceof Error ? err.message : "iCite fetch failed";
-        track("processing_error", { phase: "fetch", message });
+        track("processing_error", { phase: "fetch", error_message: message });
         setState((s) => ({ ...s, phase: "error", error: message }));
         return;
       }
