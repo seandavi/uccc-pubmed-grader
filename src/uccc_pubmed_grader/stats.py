@@ -13,7 +13,6 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import Any
 
-
 # RCR histogram bucket edges (right-open). The last bucket captures everything
 # at or above the final edge. Designed to highlight the meaningful breakpoints:
 # below average (<1), strong (1-3), high impact (3-10), exceptional (10+).
@@ -196,8 +195,7 @@ def compute_summary(
         if y is not None:
             year_counter[y] += 1
     year_histogram = [
-        HistogramBucket(label=str(y), count=year_counter[y])
-        for y in sorted(year_counter)
+        HistogramBucket(label=str(y), count=year_counter[y]) for y in sorted(year_counter)
     ]
 
     # Journals
@@ -239,9 +237,7 @@ def compute_summary(
 
     pct_clinical = _pct_of(_count_bool("is_clinical"), len(matched_records))
     pct_animal = _pct_of(_count_animal(), len(matched_records))
-    pct_has_translation_potential = _pct_of(
-        _count_translation_potential(), len(matched_records)
-    )
+    pct_has_translation_potential = _pct_of(_count_translation_potential(), len(matched_records))
 
     # Top cited papers
     def _citation_count(r: dict[str, Any]) -> int:

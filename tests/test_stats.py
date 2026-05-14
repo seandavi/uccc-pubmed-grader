@@ -44,9 +44,7 @@ def test_rcr_mean_median_and_thresholds() -> None:
         "3": _rec(3, relative_citation_ratio=2.5),
         "4": _rec(4, relative_citation_ratio=4.0),
     }
-    s = compute_summary(
-        total_rows=4, invalid=0, requested_pmids=list(records), records=records
-    )
+    s = compute_summary(total_rows=4, invalid=0, requested_pmids=list(records), records=records)
     assert s.rcr_mean == 2.125
     assert s.rcr_median == 2.0
     assert s.rcr_above_1_pct == 75.0
@@ -55,9 +53,7 @@ def test_rcr_mean_median_and_thresholds() -> None:
 
 def test_rcr_histogram_buckets() -> None:
     rcrs = [0.1, 0.6, 1.2, 1.7, 2.5, 4.0, 7.0, 15.0]
-    records = {
-        str(i): _rec(i, relative_citation_ratio=v) for i, v in enumerate(rcrs, start=1)
-    }
+    records = {str(i): _rec(i, relative_citation_ratio=v) for i, v in enumerate(rcrs, start=1)}
     s = compute_summary(
         total_rows=len(rcrs), invalid=0, requested_pmids=list(records), records=records
     )
@@ -80,9 +76,7 @@ def test_rcr_ignores_missing_and_nan() -> None:
         "2": _rec(2, relative_citation_ratio=None),
         "3": _rec(3, relative_citation_ratio="not a number"),
     }
-    s = compute_summary(
-        total_rows=3, invalid=0, requested_pmids=list(records), records=records
-    )
+    s = compute_summary(total_rows=3, invalid=0, requested_pmids=list(records), records=records)
     assert s.rcr_mean == 1.0
     assert s.rcr_median == 1.0
 
@@ -94,9 +88,7 @@ def test_top_journals() -> None:
         "3": _rec(3, journal="Nature"),
         "4": _rec(4, journal=""),
     }
-    s = compute_summary(
-        total_rows=4, invalid=0, requested_pmids=list(records), records=records
-    )
+    s = compute_summary(total_rows=4, invalid=0, requested_pmids=list(records), records=records)
     assert s.top_journals[0].journal == "Cell"
     assert s.top_journals[0].count == 2
     assert s.top_journals[1].journal == "Nature"
@@ -109,9 +101,7 @@ def test_year_histogram_sorted() -> None:
         "2": _rec(2, year=2022),
         "3": _rec(3, year=2020),
     }
-    s = compute_summary(
-        total_rows=3, invalid=0, requested_pmids=list(records), records=records
-    )
+    s = compute_summary(total_rows=3, invalid=0, requested_pmids=list(records), records=records)
     labels = [b.label for b in s.year_histogram]
     counts = {b.label: b.count for b in s.year_histogram}
     assert labels == sorted(labels)
@@ -126,18 +116,14 @@ def test_clinical_animal_apt_percentages() -> None:
         "3": _rec(3, is_clinical=False, animal=0.0, apt=0.5),
         "4": _rec(4, is_clinical=True, animal=0.0, apt=0.1),
     }
-    s = compute_summary(
-        total_rows=4, invalid=0, requested_pmids=list(records), records=records
-    )
+    s = compute_summary(total_rows=4, invalid=0, requested_pmids=list(records), records=records)
     assert s.pct_clinical == 50.0
     assert s.pct_animal == 25.0
     assert s.pct_has_translation_potential == 50.0  # APT >= 0.5 in #1 and #3
 
 
 def test_top_cited_papers_sorted_desc_and_limited() -> None:
-    records = {
-        str(i): _rec(i, citation_count=i * 10) for i in range(1, 15)
-    }
+    records = {str(i): _rec(i, citation_count=i * 10) for i in range(1, 15)}
     s = compute_summary(
         total_rows=14,
         invalid=0,

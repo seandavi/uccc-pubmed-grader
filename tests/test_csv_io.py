@@ -109,9 +109,7 @@ def test_write_augmented_csv_preserves_row_order_and_columns() -> None:
 
 def test_write_augmented_csv_renders_booleans_lowercase() -> None:
     parsed = parse_csv("pmid\n111\n")
-    augmented = write_augmented_csv(
-        parsed, {"111": {"is_clinical": True}}, ("is_clinical",)
-    )
+    augmented = write_augmented_csv(parsed, {"111": {"is_clinical": True}}, ("is_clinical",))
     rows = list(csv.DictReader(io.StringIO(augmented)))
     assert rows[0]["is_clinical"] == "true"
 
