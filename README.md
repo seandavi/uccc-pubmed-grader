@@ -4,6 +4,15 @@ A static web app for the University of Colorado Cancer Center. Drop a CSV of Pub
 
 The entire app runs in the browser — there is no backend. iCite enables CORS for cross-origin browser requests.
 
+<p align="center">
+  <img src="docs/screenshot-upload.png" alt="Upload page" width="640">
+  <br><em>Upload page.</em>
+</p>
+<p align="center">
+  <img src="docs/screenshot-dashboard.png" alt="Summary dashboard" width="640">
+  <br><em>Summary dashboard after a 10-PMID portfolio is processed.</em>
+</p>
+
 ## Quickstart
 
 ```bash

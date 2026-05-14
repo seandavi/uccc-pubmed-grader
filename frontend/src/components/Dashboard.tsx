@@ -95,9 +95,9 @@ export function Dashboard({ summary, downloadUrl, filename, onDownloadClick, onR
       {/* KPI grid */}
       <div className="grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4 [&>*]:bg-paper">
         <StatCard
-          label="Mean RCR"
-          value={fmtNumber(summary.rcr.mean)}
-          hint={summary.rcr.median !== null ? `median ${summary.rcr.median}` : undefined}
+          label="Median RCR"
+          value={fmtNumber(summary.rcr.median)}
+          hint={summary.rcr.mean !== null ? `mean ${summary.rcr.mean}` : undefined}
           emphasized
         />
         <StatCard
