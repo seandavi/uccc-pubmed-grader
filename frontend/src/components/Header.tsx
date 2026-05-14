@@ -14,7 +14,7 @@ export function Header({ compact = false }: Props) {
     <header className="rule-bottom pb-6 animate-fade-in-up">
       <div className="flex items-baseline justify-between gap-6">
         <div>
-          <p className="eyebrow">UCCC · Vol. 1</p>
+          <p className="eyebrow">Bibliometrics · Vol. 1</p>
           <Link
             to="/"
             className="block group focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold rounded-sm"
@@ -34,8 +34,8 @@ export function Header({ compact = false }: Props) {
           </Link>
           {!compact && (
             <p className="mt-4 max-w-xl font-sans text-base text-ink2 leading-relaxed">
-              A bibliometric reading room for the University of Colorado Cancer Center. Drop a
-              CSV of PubMed IDs; we'll fetch each paper's{" "}
+              A bibliometric reading room for any portfolio of PubMed IDs. Drop a CSV; we'll
+              fetch each paper's{" "}
               <a
                 className="underline underline-offset-4 hover:text-ink"
                 href="https://icite.od.nih.gov/"

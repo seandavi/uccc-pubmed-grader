@@ -1,6 +1,6 @@
-# UCCC Publication Impact Grader
+# Publication Impact Grader
 
-A static web app for the University of Colorado Cancer Center. Drop a CSV of PubMed IDs; the browser calls NIH's [iCite API](https://icite.od.nih.gov/api) for each paper, then renders a one-page editorial-styled dashboard (RCR distribution, year histogram, top journals, top-cited papers) and lets you download the augmented CSV.
+A static web app for bibliometric portfolio analysis. Drop a CSV of PubMed IDs; the browser calls NIH's [iCite API](https://icite.od.nih.gov/api) for each paper, then renders a one-page editorial-styled dashboard (RCR distribution, year histogram, top journals, top-cited papers) and lets you download the augmented CSV.
 
 The entire app runs in the browser — there is no backend. iCite enables CORS for cross-origin browser requests.
 
@@ -69,7 +69,7 @@ For "read a CSV, call a public API for each row, render stats, give the file bac
 
 ## Credits
 
-Built by [Sean Davis](mailto:seandavi@gmail.com). Bibliometric data courtesy of the [NIH Office of Portfolio Analysis](https://icite.od.nih.gov/) via the iCite API. UCCC brand colors inform the accent palette; this tool is unofficial.
+Built by [Sean Davis](mailto:seandavi@gmail.com). Bibliometric data courtesy of the [NIH Office of Portfolio Analysis](https://icite.od.nih.gov/) via the iCite API. Open Access status via [Unpaywall](https://unpaywall.org/).
 
 ## License
 

@@ -33,8 +33,8 @@ export function About() {
       <header className="rule-bottom pb-8">
         <p className="eyebrow">Colophon · About this tool</p>
         <h1 className="font-display text-display-lg mt-3 leading-tight">
-          A bibliometric reading room for the
-          <span className="italic"> University of Colorado Cancer Center</span>.
+          A bibliometric reading room for
+          <span className="italic"> any portfolio of PubMed IDs</span>.
         </h1>
       </header>
 
@@ -137,8 +137,16 @@ export function About() {
           >
             NIH Office of Portfolio Analysis
           </a>{" "}
-          via the iCite API. The University of Colorado Cancer Center brand colors inform the
-          accent palette; this tool is unofficial and not an endorsement.
+          via the iCite API. Open Access classification via{" "}
+          <a
+            className="underline underline-offset-4 hover:text-ink"
+            href="https://unpaywall.org/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Unpaywall
+          </a>
+          . This tool is independent and unaffiliated.
         </p>
       </Section>
 
