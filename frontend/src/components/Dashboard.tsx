@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -8,13 +9,20 @@ import {
   YAxis,
 } from "recharts";
 
+import type { ICiteRecord } from "../lib/icite";
+import { computeSummary } from "../lib/stats";
 import type { Summary } from "../lib/stats";
 
 import { RuleHeading } from "./RuleHeading";
 import { StatCard } from "./StatCard";
+import { YearRangeFilter } from "./YearRangeFilter";
 
 type Props = {
   summary: Summary;
+  records: Map<string, ICiteRecord>;
+  requestedPmids: string[];
+  totalRows: number;
+  invalidCount: number;
   downloadUrl: string;
   filename: string;
   onDownloadClick: () => void;
@@ -44,7 +52,66 @@ function fmtNumber(v: number | null): string {
   return v === null ? "—" : v.toLocaleString();
 }
 
-export function Dashboard({ summary, downloadUrl, filename, onDownloadClick, onReset }: Props) {
+function yearOf(r: ICiteRecord): number | null {
+  if (r.year === undefined || r.year === null) return null;
+  const n = typeof r.year === "number" ? r.year : Number(r.year);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+export function Dashboard({
+  summary: initialSummary,
+  records,
+  requestedPmids,
+  totalRows,
+  invalidCount,
+  downloadUrl,
+  filename,
+  onDownloadClick,
+  onReset,
+}: Props) {
+  // The full year range available in the matched records.
+  const [minYear, maxYear] = useMemo(() => {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const rec of records.values()) {
+      const y = yearOf(rec);
+      if (y === null) continue;
+      if (y < min) min = y;
+      if (y > max) max = y;
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return [0, 0] as const;
+    }
+    return [min, max] as const;
+  }, [records]);
+
+  const [yearRange, setYearRange] = useState<[number, number]>(() => [minYear, maxYear]);
+  const [from, to] = yearRange;
+  const isFiltered = from > minYear || to < maxYear;
+
+  // Recompute summary on filter change. When unfiltered we keep the initial
+  // summary to skip the work entirely.
+  const summary: Summary = useMemo(() => {
+    if (!isFiltered) return initialSummary;
+    const keep = new Set<string>();
+    const filtered = new Map<string, ICiteRecord>();
+    for (const pmid of requestedPmids) {
+      const rec = records.get(pmid);
+      if (!rec) continue;
+      const y = yearOf(rec);
+      if (y !== null && y >= from && y <= to) {
+        keep.add(pmid);
+        filtered.set(pmid, rec);
+      }
+    }
+    return computeSummary({
+      totalRows,
+      invalid: invalidCount,
+      requestedPmids: requestedPmids.filter((p) => keep.has(p)),
+      records: filtered,
+    });
+  }, [from, to, isFiltered, initialSummary, records, requestedPmids, totalRows, invalidCount]);
+
   const rcrAbove1 = summary.rcr.above1Pct;
 
   return (
@@ -72,7 +139,7 @@ export function Dashboard({ summary, downloadUrl, filename, onDownloadClick, onR
             </>
           )}
         </p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center gap-3 print-hide">
           <a
             href={downloadUrl}
             download={filename}
@@ -84,6 +151,14 @@ export function Dashboard({ summary, downloadUrl, filename, onDownloadClick, onR
           </a>
           <button
             type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-3 border border-ink px-6 py-3 font-mono text-xs uppercase tracking-eyebrow hover:bg-ink hover:text-paper transition-colors"
+          >
+            <span>Print / save PDF</span>
+            <span aria-hidden>🖶</span>
+          </button>
+          <button
+            type="button"
             onClick={onReset}
             className="font-mono text-[0.7rem] uppercase tracking-eyebrow text-ink2 hover:text-ink transition-colors px-2"
           >
@@ -91,6 +166,26 @@ export function Dashboard({ summary, downloadUrl, filename, onDownloadClick, onR
           </button>
         </div>
       </div>
+
+      {/* Year filter — only when there's more than a single year's worth of data */}
+      {maxYear > minYear && (
+        <div className="print-hide">
+          <YearRangeFilter
+            minYear={minYear}
+            maxYear={maxYear}
+            value={yearRange}
+            onChange={setYearRange}
+            histogram={initialSummary.yearHistogram}
+          />
+          {isFiltered && (
+            <p className="mt-3 font-mono text-[0.7rem] text-muted tabular">
+              Showing {summary.matched.toLocaleString()} of{" "}
+              {initialSummary.matched.toLocaleString()} matched papers
+              ({from}–{to}).
+            </p>
+          )}
+        </div>
+      )}
 
       {/* KPI grid */}
       <div className="grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4 [&>*]:bg-paper">

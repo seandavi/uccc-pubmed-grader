@@ -62,6 +62,10 @@ export function Grader() {
     return (
       <Dashboard
         summary={state.summary}
+        records={state.records}
+        requestedPmids={state.requestedPmids}
+        totalRows={state.totalRows}
+        invalidCount={state.invalidCount}
         downloadUrl={state.downloadUrl}
         filename={state.filename}
         onDownloadClick={trackDownload}

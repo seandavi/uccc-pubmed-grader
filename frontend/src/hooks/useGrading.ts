@@ -22,6 +22,10 @@ export type GradingState = {
   processed: number;
   total: number;
   summary: Summary | null;
+  records: Map<string, ICiteRecord>;
+  requestedPmids: string[];
+  totalRows: number;
+  invalidCount: number;
   downloadUrl: string | null;
   filename: string;
   error: string | null;
@@ -32,6 +36,10 @@ const INITIAL: GradingState = {
   processed: 0,
   total: 0,
   summary: null,
+  records: new Map(),
+  requestedPmids: [],
+  totalRows: 0,
+  invalidCount: 0,
   downloadUrl: null,
   filename: "",
   error: null,
@@ -54,6 +62,9 @@ export function useGrading() {
   );
 
   useEffect(() => {
+    // Reset on setup so React 18 StrictMode's mount → unmount → mount
+    // dance leaves us in a "mounted" state again.
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       abortRef.current?.abort();
@@ -162,6 +173,10 @@ export function useGrading() {
         phase: "done",
         processed: pmids.length,
         total: pmids.length,
+        records,
+        requestedPmids: pmids,
+        totalRows: parsed.rows.length,
+        invalidCount: parsed.invalidRows.length,
         summary,
         downloadUrl: url,
         filename: outputName,
