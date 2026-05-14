@@ -81,9 +81,10 @@ export function UploadPanel({ pmidColumn, onPmidColumnChange, onFile }: Props) {
             {loadingExample ? "Loading example…" : "Try with example data →"}
           </button>
           <p className="mt-2 font-mono text-[0.7rem] text-muted">
-            28-row CSV of cancer-research landmarks (Hallmarks, KEYNOTE, CAR-T,
-            TCGA), spanning 2000–2018. Includes a deliberately invalid row to
-            show error handling.
+            34-row CSV mixing cancer-research landmarks (Hallmarks, KEYNOTE,
+            CAR-T, TCGA) with a tail of lower-impact, obscure papers, spanning
+            1993–2019. Includes a deliberately invalid row to show error
+            handling.
           </p>
           <p className="mt-3 font-mono text-[0.7rem] text-muted">
             <a
