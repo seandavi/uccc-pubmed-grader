@@ -17,7 +17,7 @@ export function Header({ compact = false }: Props) {
           <p className="eyebrow">UCCC · Vol. 1</p>
           <Link
             to="/"
-            className="block group focus:outline-none"
+            className="block group focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold rounded-sm"
             aria-label="Publication Impact Grader, home"
           >
             <h1 className="font-display text-display-xl mt-2 leading-none">

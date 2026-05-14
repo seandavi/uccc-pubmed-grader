@@ -46,8 +46,19 @@ export function About() {
           year mix, top journals, and the most-cited papers.
         </p>
         <p>
-          Nothing leaves your browser. There is no backend; no upload server; no stored copy of
-          your CSV. The augmented CSV download is generated locally as a Blob URL.
+          Your CSV file stays in your browser — there is no backend, no upload server, and no
+          stored copy on our side. The PMIDs themselves are sent to{" "}
+          <a
+            className="underline underline-offset-4 hover:text-ink"
+            href="https://icite.od.nih.gov/api"
+            target="_blank"
+            rel="noreferrer"
+          >
+            NIH iCite
+          </a>{" "}
+          so it can return their bibliometric data; nothing else in the CSV (additional
+          columns, file name, etc.) is transmitted. The augmented CSV download is generated
+          locally as a Blob URL.
         </p>
       </Section>
 
