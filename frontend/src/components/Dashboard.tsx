@@ -52,6 +52,16 @@ function fmtNumber(v: number | null): string {
   return v === null ? "—" : v.toLocaleString();
 }
 
+import type { OAStatus } from "../lib/unpaywall";
+const OA_COLOR: Record<OAStatus, string> = {
+  gold: "#CFB87C",
+  green: "#5B7F5C",
+  hybrid: "#A38C4F",
+  bronze: "#8B5E3C",
+  closed: "#1C1B17",
+  unknown: "#6B6962",
+};
+
 function yearOf(r: ICiteRecord): number | null {
   if (r.year === undefined || r.year === null) return null;
   const n = typeof r.year === "number" ? r.year : Number(r.year);
@@ -188,7 +198,7 @@ export function Dashboard({
       )}
 
       {/* KPI grid */}
-      <div className="grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4 [&>*]:bg-paper">
+      <div className="grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-3 [&>*]:bg-paper">
         <StatCard
           label="Median RCR"
           value={fmtNumber(summary.rcr.median)}
@@ -202,6 +212,16 @@ export function Dashboard({
           hint={summary.rcr.above2Pct !== null ? `${summary.rcr.above2Pct}% above 2×` : undefined}
         />
         <StatCard
+          label="Open Access"
+          value={fmtPct(summary.pctOpenAccess)}
+          unit="%"
+          hint={
+            summary.oaResolved > 0
+              ? `of ${summary.oaResolved} papers with DOI in Unpaywall`
+              : "no DOIs to look up"
+          }
+        />
+        <StatCard
           label="Clinical"
           value={fmtPct(summary.pctClinical)}
           unit="%"
@@ -211,6 +231,15 @@ export function Dashboard({
           value={fmtPct(summary.pctHasTranslationPotential)}
           unit="%"
           hint="iCite APT ≥ 0.5"
+        />
+        <StatCard
+          label="Median Altmetric"
+          value={fmtNumber(summary.altmetricMedian)}
+          hint={
+            summary.altmetricCovered > 0
+              ? `${summary.altmetricCovered} papers scored`
+              : "no Altmetric coverage"
+          }
         />
       </div>
 
@@ -332,10 +361,96 @@ export function Dashboard({
         </div>
       </div>
 
+      {/* Top by Altmetric attention */}
+      {summary.topByAttention.length > 0 && (
+        <div>
+          <RuleHeading eyebrow="Table III" title="Top by Altmetric attention" />
+          <p className="mt-3 font-sans text-sm text-ink2 max-w-xl">
+            Altmetric Attention Score weights mentions across news, social, policy, and patents.
+            High score ≠ high quality — but it does flag papers with visible public uptake.
+          </p>
+          <ol className="mt-8 grid gap-5 md:grid-cols-2">
+            {summary.topByAttention.map((p, i) => (
+              <li key={p.pmid} className="border-b hairline pb-4">
+                <p className="flex items-baseline gap-3 font-mono text-[0.7rem] text-muted tabular">
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                  <span>
+                    {p.journal}
+                    {p.year && <> · {p.year}</>}
+                  </span>
+                </p>
+                <h4 className="mt-1 font-display text-base leading-snug text-ink">
+                  {p.title || "Untitled"}
+                </h4>
+                <div className="mt-2 flex items-baseline gap-6 font-mono text-xs">
+                  <span className="tabular">
+                    <span className="text-muted">attention </span>
+                    <span className="text-ink">{fmtNumber(p.altmetricScore)}</span>
+                  </span>
+                  <span className="tabular">
+                    <span className="text-muted">cites </span>
+                    <span className="text-ink">{fmtNumber(p.citationCount)}</span>
+                  </span>
+                  {p.altmetricUrl ? (
+                    <a
+                      className="ml-auto text-ink2 hover:text-ink underline-offset-4 hover:underline"
+                      href={p.altmetricUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Details ↗
+                    </a>
+                  ) : (
+                    <a
+                      className="ml-auto text-ink2 hover:text-ink underline-offset-4 hover:underline"
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${p.pmid}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      PMID {p.pmid} ↗
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* OA breakdown (only when we have any) */}
+      {summary.oaBreakdown.length > 0 && (
+        <div>
+          <RuleHeading eyebrow="Figure III" title="Open Access mix" />
+          <p className="mt-3 font-sans text-sm text-ink2 max-w-xl">
+            Counted only over papers whose DOI was found in Unpaywall.
+          </p>
+          <ul className="mt-6 space-y-2">
+            {summary.oaBreakdown.map((b) => (
+              <li
+                key={b.status}
+                className="flex items-baseline justify-between gap-4 border-b hairline pb-2"
+              >
+                <span className="flex items-baseline gap-3">
+                  <span
+                    className="inline-block h-3 w-3"
+                    style={{ background: OA_COLOR[b.status] }}
+                    aria-hidden
+                  />
+                  <span className="font-mono text-[0.75rem] uppercase tracking-eyebrow text-ink">
+                    {b.status}
+                  </span>
+                </span>
+                <span className="font-mono text-sm tabular text-ink">{b.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Footer rule */}
       <div className="rule-top pt-6">
         <p className="eyebrow text-muted">
-          End of issue · Data via NIH iCite. Computed in your browser.
+          End of issue · Data via NIH iCite, Unpaywall, Altmetric. Computed in your browser.
         </p>
       </div>
     </section>

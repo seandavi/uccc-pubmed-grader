@@ -8,15 +8,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { fetchAltmetric } from "../lib/altmetric";
+import type { AltmetricRecord } from "../lib/altmetric";
 import { CSVParseError, parseCSV, validPmids, writeAugmentedCSV } from "../lib/csv";
 import { ICITE_COLUMNS, fetchMany } from "../lib/icite";
 import type { ICiteRecord } from "../lib/icite";
 import { computeSummary } from "../lib/stats";
 import type { Summary } from "../lib/stats";
 import { track } from "../lib/analytics";
+import { fetchUnpaywall } from "../lib/unpaywall";
+import type { UnpaywallRecord } from "../lib/unpaywall";
 import { versionLabel } from "../lib/version";
 
-export type Phase = "idle" | "parsing" | "fetching" | "summarizing" | "done" | "error";
+export type Phase =
+  | "idle"
+  | "parsing"
+  | "fetching"
+  | "augmenting"
+  | "summarizing"
+  | "done"
+  | "error";
 
 export type GradingState = {
   phase: Phase;
@@ -24,6 +35,8 @@ export type GradingState = {
   total: number;
   summary: Summary | null;
   records: Map<string, ICiteRecord>;
+  unpaywall: Map<string, UnpaywallRecord>;
+  altmetric: Map<string, AltmetricRecord>;
   requestedPmids: string[];
   totalRows: number;
   invalidCount: number;
@@ -38,6 +51,8 @@ const INITIAL: GradingState = {
   total: 0,
   summary: null,
   records: new Map(),
+  unpaywall: new Map(),
+  altmetric: new Map(),
   requestedPmids: [],
   totalRows: 0,
   invalidCount: 0,
@@ -148,16 +163,78 @@ export function useGrading() {
         return;
       }
 
+      // --- Augmentation phase: Unpaywall (by DOI) + Altmetric (by PMID) in parallel
+      const doiByPmid = new Map<string, string>();
+      const dois: string[] = [];
+      for (const pmid of pmids) {
+        const rec = records.get(pmid);
+        const doi = rec?.doi?.trim();
+        if (doi) {
+          doiByPmid.set(pmid, doi);
+          dois.push(doi);
+        }
+      }
+
+      const augTotal = dois.length + pmids.length;
+      let oaProgress = 0;
+      let attentionProgress = 0;
+      safeSetState((s) => ({
+        ...s,
+        phase: "augmenting",
+        processed: 0,
+        total: augTotal,
+      }));
+
+      const onAug = () => {
+        safeSetState((s) => ({ ...s, processed: oaProgress + attentionProgress }));
+      };
+
+      let unpaywall = new Map<string, UnpaywallRecord>();
+      let altmetric = new Map<string, AltmetricRecord>();
+      try {
+        [unpaywall, altmetric] = await Promise.all([
+          fetchUnpaywall(dois, {
+            signal: controller.signal,
+            onProgress: (p) => {
+              oaProgress = p;
+              onAug();
+            },
+          }),
+          fetchAltmetric(pmids, {
+            signal: controller.signal,
+            onProgress: (p) => {
+              attentionProgress = p;
+              onAug();
+            },
+          }),
+        ]);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Non-fatal: augmentation failures should not abort the dashboard.
+        // Log and continue with whatever we got.
+        // eslint-disable-next-line no-console
+        console.warn("augmentation failed", err);
+        track("processing_error", {
+          phase: "augment",
+          error_message: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       safeSetState((s) => ({ ...s, phase: "summarizing" }));
       const summary = computeSummary({
         totalRows: parsed.rows.length,
         invalid: parsed.invalidRows.length,
         requestedPmids: pmids,
         records,
+        unpaywallByDoi: unpaywall,
+        altmetricByPmid: altmetric,
+        doiByPmid,
       });
       const augmented = writeAugmentedCSV(parsed, records, ICITE_COLUMNS, {
         appVersion: versionLabel(),
         dateRun: new Date().toISOString(),
+        unpaywallByDoi: unpaywall,
+        altmetricByPmid: altmetric,
       });
       const blob = new Blob([augmented], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -178,6 +255,8 @@ export function useGrading() {
         processed: pmids.length,
         total: pmids.length,
         records,
+        unpaywall,
+        altmetric,
         requestedPmids: pmids,
         totalRows: parsed.rows.length,
         invalidCount: parsed.invalidRows.length,

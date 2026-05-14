@@ -9,8 +9,8 @@
 
 export type ColumnDoc = {
   name: string;
-  source: "iCite" | "App";
-  type: "number" | "integer" | "string" | "boolean" | "date" | "fraction";
+  source: "iCite" | "Unpaywall" | "Altmetric" | "App";
+  type: "number" | "integer" | "string" | "boolean" | "date" | "fraction" | "url";
   description: string;
 };
 
@@ -162,6 +162,44 @@ export const COLUMN_DICTIONARY: readonly ColumnDoc[] = [
     source: "iCite",
     type: "date",
     description: "ISO date iCite last refreshed this record.",
+  },
+
+  // --- Unpaywall fields (joined by DOI) -------------------------------
+  {
+    name: "is_oa",
+    source: "Unpaywall",
+    type: "boolean",
+    description:
+      "Whether Unpaywall classifies the paper as Open Access (any flavor). Blank when the DOI was missing or not in Unpaywall.",
+  },
+  {
+    name: "oa_status",
+    source: "Unpaywall",
+    type: "string",
+    description:
+      "Unpaywall OA classification: gold (OA journal), green (preprint/repo), hybrid (paid journal + OA article), bronze (free to read, no license), or closed. \"unknown\" if Unpaywall returned an unexpected value.",
+  },
+  {
+    name: "oa_url",
+    source: "Unpaywall",
+    type: "url",
+    description:
+      "Best available URL for an OA copy (preferring PDF). Blank when no OA copy is known.",
+  },
+
+  // --- Altmetric fields (joined by PMID) ------------------------------
+  {
+    name: "altmetric_score",
+    source: "Altmetric",
+    type: "number",
+    description:
+      "Altmetric Attention Score — a weighted measure of social / news / policy attention. Blank when Altmetric has no record for the PMID.",
+  },
+  {
+    name: "altmetric_url",
+    source: "Altmetric",
+    type: "url",
+    description: "Public details page on altmetric.com for this paper.",
   },
 
   // --- App-added provenance fields ------------------------------------
