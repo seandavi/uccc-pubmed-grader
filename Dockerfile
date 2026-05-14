@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Two-stage build: bun builds the static SPA, nginx serves it.
 
-FROM oven/bun:1.1-alpine AS build
+FROM oven/bun:1.3-alpine AS build
 WORKDIR /app
 COPY frontend/package.json frontend/bun.lock* frontend/bun.lockb* ./
 RUN bun install --frozen-lockfile || bun install

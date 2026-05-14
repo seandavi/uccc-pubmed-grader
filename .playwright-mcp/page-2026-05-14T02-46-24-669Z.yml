@@ -1,0 +1,24 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - paragraph [ref=e8]: UCCC · Vol. 1
+        - heading "Publication Impact Grader" [level=1] [ref=e9]:
+          - text: Publication
+          - generic [ref=e10]: Impact
+          - text: Grader
+        - paragraph [ref=e12]: A bibliometric reading room for the University of Colorado Cancer Center. Drop a CSV of PubMed IDs; we'll fetch each paper's NIH iCite metrics in your browser and produce a portfolio summary with RCR distribution, citation tail, and journal mix.
+      - paragraph [ref=e13]: May 13, 2026
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - paragraph [ref=e16]: Step 01 · Drop a CSV
+      - heading "A reader for your portfolio." [level=2] [ref=e17]
+      - paragraph [ref=e18]: Any CSV will do, as long as it has a column of PubMed IDs. The default column name is pmid. Set a different name below if yours is something else.
+      - generic [ref=e19]:
+        - text: PMID column (optional)
+        - textbox "PMID column name" [ref=e20]:
+          - /placeholder: pmid
+    - button "Upload CSV file" [ref=e21] [cursor=pointer]:
+      - paragraph [ref=e22]: Drag a .csv here
+      - paragraph [ref=e23]: or click to browse
+      - paragraph [ref=e24]: Files are read in your browser — nothing is uploaded.
