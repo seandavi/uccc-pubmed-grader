@@ -1,4 +1,4 @@
-"""FastAPI application factory. Real endpoints land in later PRs."""
+"""FastAPI application factory."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from uccc_pubmed_grader import __version__
+from uccc_pubmed_grader.api import router as api_router
 
 
 def create_app() -> FastAPI:
@@ -21,6 +22,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
+
+    app.include_router(api_router)
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:
