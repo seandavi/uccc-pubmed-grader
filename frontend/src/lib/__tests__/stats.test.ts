@@ -184,6 +184,10 @@ describe("computeSummary", () => {
     expect(s.hIndex).toBe(4);
     // i10: papers with ≥10 citations = 1
     expect(s.i10Index).toBe(1);
+    // Median of [10, 8, 5, 4, 3] = 5
+    expect(s.medianCitations).toBe(5);
+    // Mean = 30/5 = 6
+    expect(s.meanCitations).toBe(6);
   });
 
   it("returns nulls for citation metrics when citation_count is absent", () => {

@@ -278,6 +278,16 @@ export function Dashboard({
           hint="papers with ≥ 10 citations"
           info="Count of papers in the portfolio with at least 10 citations. Originally popularized by Google Scholar profiles."
         />
+        <StatCard
+          label="Median citations"
+          value={fmtNumber(summary.medianCitations)}
+          hint={
+            summary.meanCitations !== null
+              ? `mean ${summary.meanCitations.toLocaleString()}`
+              : undefined
+          }
+          info="Median number of citations per paper across the matched set. Robust to outliers — a handful of mega-cited papers can pull the mean (shown beneath) far above what a typical paper in the portfolio actually looks like."
+        />
       </div>
 
       {/* RCR distribution */}

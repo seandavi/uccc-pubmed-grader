@@ -47,6 +47,8 @@ export type Summary = {
   // Aggregate citation metrics over the matched set.
   totalCitations: number | null;
   clinicalCitations: number | null; // citations received from clinical papers (iCite `cited_by_clin`)
+  meanCitations: number | null;
+  medianCitations: number | null;
   hIndex: number | null;
   i10Index: number | null;
   topCitedPapers: TopPaper[];
@@ -256,6 +258,12 @@ export function computeSummary(args: ComputeArgs): Summary {
     else break;
   }
   const i10Index = citationCounts.filter((c) => c >= 10).length;
+  const medianCitations = citationCounts.length
+    ? Math.round(median(citationCounts) * 10) / 10
+    : null;
+  const meanCitations = citationCounts.length
+    ? Math.round(mean(citationCounts) * 10) / 10
+    : null;
 
   return {
     totalRows: args.totalRows,
@@ -280,6 +288,8 @@ export function computeSummary(args: ComputeArgs): Summary {
     oaResolved,
     totalCitations: haveAnyCitationData ? totalCitations : null,
     clinicalCitations: haveAnyClinicalData ? clinicalCitations : null,
+    meanCitations,
+    medianCitations,
     hIndex: haveAnyCitationData ? hIndex : null,
     i10Index: haveAnyCitationData ? i10Index : null,
     topCitedPapers,
