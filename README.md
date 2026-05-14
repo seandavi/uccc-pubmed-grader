@@ -12,6 +12,10 @@ The entire app runs in the browser — there is no backend. iCite enables CORS f
   <img src="docs/screenshot-dashboard.png" alt="Summary dashboard" width="640">
   <br><em>Summary dashboard after a 10-PMID portfolio is processed.</em>
 </p>
+<p align="center">
+  <img src="docs/screenshot-about.png" alt="About page" width="640">
+  <br><em>About page (methodology and credits).</em>
+</p>
 
 ## Quickstart
 
@@ -40,13 +44,9 @@ Any CSV with a column of PubMed IDs. The PMID column name is auto-detected case-
 
 ## Deployment
 
-Multi-stage Docker: bun builds the SPA, nginx serves the static output. Traefik in front handles TLS and routing — Traefik labels are wired up in `docker-compose.yml`; the shared Traefik config lives outside this repo at `monode/infrastructure/compose/traefik`.
+Deployed to [Netlify](https://www.netlify.com/). Build settings live in [`netlify.toml`](./netlify.toml); custom domain + CNAME are configured in the Netlify UI. `VITE_GA_MEASUREMENT_ID` is set as a Netlify environment variable for production builds.
 
-```bash
-just up    # docker compose up --build
-```
-
-For static-host deploys (Cloudflare Pages, Vercel, Netlify, GCS+CDN, GitHub Pages), point the host at `frontend/dist` after `just build`.
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/seandavi/uccc-pubmed-grader)
 
 ## Architecture
 
@@ -66,6 +66,10 @@ upload → parseCSV (papaparse) → validPmids
 ## Why client-only?
 
 For "read a CSV, call a public API for each row, render stats, give the file back," a backend buys you very little and costs you operational complexity. We're trading that complexity for: no infra to run, no auth, no rate-limit proxy, no file storage, no shareable job URLs. If any of those needs surface later, a backend can be added back — but starting here keeps the surface small.
+
+## Credits
+
+Built by [Sean Davis](mailto:seandavi@gmail.com). Bibliometric data courtesy of the [NIH Office of Portfolio Analysis](https://icite.od.nih.gov/) via the iCite API. UCCC brand colors inform the accent palette; this tool is unofficial.
 
 ## License
 
