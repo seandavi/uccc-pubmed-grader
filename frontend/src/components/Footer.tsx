@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 
 import { GIT_SHA, versionLabel } from "../lib/version";
 
-const REPO_URL = "https://github.com/seandavi/uccc-pubmed-grader";
+const REPO_URL = "https://github.com/seandavi/pubmed-grader";
 
 export function Footer() {
   const commitUrl =
