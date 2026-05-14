@@ -109,7 +109,7 @@ export function About() {
           Source is on{" "}
           <a
             className="underline underline-offset-4 hover:text-ink"
-            href="https://github.com/seandavi/uccc-pubmed-grader"
+            href="https://github.com/seandavi/pubmed-grader"
             target="_blank"
             rel="noreferrer"
           >
